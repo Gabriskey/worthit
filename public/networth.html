@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OwnIt | WorthIt</title>
+  <link rel="shortcut icon" href="assets/worthit.png" type="image/x-icon">
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/worthit-shell.css?v=20260813-1">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Oswald:wght@400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+<header
+  id="worthitShell"
+  data-app="ownit"
+  data-root=""
+></header>
+
+<div class="planner-container">
+  <section class="page-section active">
+
+    <section class="networth-hero">
+      <div class="networth-hero-content">
+        <h2 style="margin:0;">OwnIt — Net Worth Dashboard</h2>
+        <p class="networth-subtitle">
+          Assets minus remaining balances, with a full view of savings, debts, wishlist value, monthly burn, and payoff progress.
+        </p>
+
+        <div class="networth-total">
+          ₱<span id="netWorthTotal">0</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="summary-grid">
+      <div class="summary-card total">
+        <span class="label">TOTAL SAVINGS</span>
+        <div class="value">₱<span id="nwSavings">0</span></div>
+      </div>
+
+      <div class="summary-card high">
+        <span class="label">TOTAL PAID</span>
+        <div class="value">₱<span id="nwPaid">0</span></div>
+      </div>
+
+      <div class="summary-card med">
+        <span class="label">REMAINING DEBT</span>
+        <div class="value">₱<span id="nwDebt">0</span></div>
+      </div>
+
+      <div class="summary-card low">
+        <span class="label">MONTHLY BURN RATE</span>
+        <div class="value">₱<span id="nwBurn">0</span></div>
+      </div>
+    </section>
+
+    <div class="networth-grid">
+      <section class="networth-panel">
+  <div class="networth-section-header">
+    <div>
+      <h2 style="margin:0;">SpendIt Accounts</h2>
+      <p style="margin:4px 0 0; color:var(--text-secondary);">
+        Current balances across your SpendIt accounts.
+      </p>
+    </div>
+  </div>
+
+  <div id="nwSpendItAccountsList" class="networth-list"></div>
+</section>
+
+      <section class="networth-panel">
+        <div class="networth-section-header">
+          <div>
+            <h2 style="margin:0;">Savings Goals</h2>
+            <p style="margin:4px 0 0; color:var(--text-secondary);">Money you have already saved.</p>
+          </div>
+        </div>
+        <div id="nwSavingsList" class="networth-list"></div>
+      </section>
+
+      <section class="networth-panel">
+        <div class="networth-section-header">
+          <div>
+            <h2 style="margin:0;">Remaining Balances</h2>
+            <p style="margin:4px 0 0; color:var(--text-secondary);">Payoff items still left to finish.</p>
+          </div>
+        </div>
+        <div id="nwDebtList" class="networth-list"></div>
+      </section>
+
+      <section class="networth-panel">
+        <div class="networth-section-header">
+          <div>
+            <h2 style="margin:0;">Wishlist Value</h2>
+            <p style="margin:4px 0 0; color:var(--text-secondary);">Potential future purchases.</p>
+          </div>
+        </div>
+        <div id="nwWishlistList" class="networth-list"></div>
+      </section>
+
+      <section class="networth-panel">
+        <div class="networth-section-header">
+          <div>
+            <h2 style="margin:0;">Monthly Burn Rate</h2>
+            <p style="margin:4px 0 0; color:var(--text-secondary);">Current month planned expenses plus payoff monthly payments.</p>
+          </div>
+        </div>
+        <div id="nwBurnList" class="networth-list"></div>
+      </section>
+    </div>
+
+  </section>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script src="js/shared.js"></script>
+<script src="js/networth.js"></script>
+<script src="js/worthit-shell.js"></script>
+
+<script
+  type="module"
+  src="js/auth-shell.js"
+></script>
+
+<script
+  type="module"
+  src="js/ownit-sync.js"
+></script>
+
+</body>
+</html>

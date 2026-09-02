@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WorthIt — Your Financial Command Center</title>
+  <link rel="shortcut icon" href="assets/worthit.png" type="image/x-icon">
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/worthit-shell.css?v=20260813-1">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Oswald:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    .landing-hero {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 4rem 2rem;
+      text-align: center;
+    }
+
+    .landing-title {
+      font-size: clamp(2rem, 5vw, 3.5rem);
+      font-weight: 800;
+      letter-spacing: -1px;
+      margin-bottom: 1rem;
+      background: var(--gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      line-height: 1.1;
+    }
+
+    .landing-subtitle {
+      font-size: 1.15rem;
+      color: var(--text-secondary);
+      max-width: 600px;
+      margin: 0 auto 3rem;
+      line-height: 1.6;
+    }
+
+.tool-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.5rem;
+  max-width: 1200px;
+  margin: 0 auto 2.5rem;
+}
+
+@media (max-width: 1000px) {
+  .tool-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .tool-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+    .tool-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 2rem;
+      text-decoration: none;
+      color: var(--text);
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: var(--shadow-md);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      text-align: left;
+    }
+
+    .tool-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: var(--gradient-subtle);
+      opacity: 0;
+      transition: opacity 0.4s ease;
+    }
+
+    .tool-card::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: var(--gradient);
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform 0.4s ease;
+    }
+
+    .tool-card:hover {
+      transform: translateY(-8px);
+      box-shadow: var(--shadow-xl);
+      border-color: var(--accent);
+    }
+
+    .tool-card:hover::before {
+      opacity: 1;
+    }
+
+    .tool-card:hover::after {
+      transform: scaleX(1);
+    }
+
+    .tool-card-icon {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    .tool-card-title {
+      font-size: 1.35rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      position: relative;
+      z-index: 1;
+      color: var(--text);
+    }
+
+    .tool-card-description {
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+      line-height: 1.5;
+      margin-bottom: 1.5rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    .tool-card-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--accent);
+      font-weight: 700;
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      position: relative;
+      z-index: 1;
+      margin-top: auto;
+    }
+
+    .tool-card-cta::after {
+      content: '→';
+      transition: transform 0.3s ease;
+    }
+
+    .tool-card:hover .tool-card-cta::after {
+      transform: translateX(4px);
+    }
+
+    @media (max-width: 600px) {
+      .landing-hero {
+        padding: 2rem 1rem;
+      }
+    }
+  </style>
+</head>
+<body>
+ <header
+  id="worthitShell"
+  data-app="home"
+  data-root=""
+></header>
+
+  <main class="landing-hero">
+    <h1 class="landing-title">Track it. Plan it. Own it.</h1>
+    <p class="landing-subtitle">Your personal financial command center. Wishlist, plan expenses, and track savings — all in one beautiful place.</p>
+
+    <div class="tool-grid">
+      <a href="earnit/index.html" class="tool-card">
+  <div class="tool-card-icon">💼</div>
+  <div class="tool-card-title">EarnIt</div>
+  <div class="tool-card-description">
+    Track job applications, interviews, offers, salaries, and income opportunities.
+  </div>
+  <div class="tool-card-cta">Open EarnIt</div>
+</a>
+
+<a href="spendit/index.html" class="tool-card">
+  <div class="tool-card-icon">💳</div>
+  <div class="tool-card-title">SpendIt</div>
+  <div class="tool-card-description">
+    Track accounts, transactions, expenses, income, transfers, and spending activity.
+  </div>
+  <div class="tool-card-cta">Open SpendIt</div>
+</a>
+      <a href="wishlist.html" class="tool-card" data-testid="tool-card-wishlist">
+        <div class="tool-card-icon">✨</div>
+        <div class="tool-card-title">PlanIt — Wishlist</div>
+        <div class="tool-card-description">Track everything you want to buy. Sort by priority, filter by category, and plan purchases smartly.</div>
+        <div class="tool-card-cta">Open Wishlist</div>
+      </a>
+
+      <a href="planner.html" class="tool-card" data-testid="tool-card-planner">
+        <div class="tool-card-icon">📅</div>
+        <div class="tool-card-title">PlanIt — Planner</div>
+        <div class="tool-card-description">Plan your monthly expenses with priority levels, due dates, and recurring payment tracking.</div>
+        <div class="tool-card-cta">Open Planner</div>
+      </a>
+
+      <a href="savings.html" class="tool-card" data-testid="tool-card-savings">
+        <div class="tool-card-icon">🎯</div>
+        <div class="tool-card-title">SaveIt</div>
+        <div class="tool-card-description">Set savings goals and watch your progress with beautiful visual progress bars.</div>
+        <div class="tool-card-cta">Open Tracker</div>
+      </a>
+
+      <a href="networth.html" class="tool-card">
+  <div class="tool-card-icon">📊</div>
+  <div class="tool-card-title">OwnIt</div>
+  <div class="tool-card-description">See savings, debts, assets, wishlist value, and monthly burn rate in one dashboard.</div>
+  <div class="tool-card-cta">Open Dashboard</div>
+</a>
+
+    </div>
+
+  <section class="summary-grid" style="padding:0; margin-bottom:2rem;">
+    <a href="networth.html" class="summary-card total" style="text-decoration:none;">
+      <span class="label">NET WORTH</span>
+      <div class="value">₱<span id="dashNetWorth">0</span></div>
+    </a>
+
+    <a href="planner.html" class="summary-card low" style="text-decoration:none;">
+      <span class="label">THIS MONTH’S BURN</span>
+      <div class="value">₱<span id="dashBurn">0</span></div>
+    </a>
+
+    <a href="planner.html" class="summary-card med" style="text-decoration:none;">
+      <span class="label">UPCOMING PAYMENTS</span>
+      <div class="value" id="dashUpcoming">None</div>
+    </a>
+
+    <a href="wishlist.html" class="summary-card high" style="text-decoration:none;">
+      <span class="label">TOP WISHLIST ITEM</span>
+      <div class="value" id="dashTopWishlist">None</div>
+    </a>
+  </section>
+
+  <div class="tool-grid">
+
+  </main>
+
+  <script src="js/shared.js"></script>
+  <script src="js/worthit-shell.js"></script>
+  <script
+  type="module"
+  src="js/auth-shell.js"
+></script>
+
+  <script>
+  const SAVINGS_KEY = "savingsGoals"
+
+  function money(value) {
+    return Number(value || 0).toLocaleString()
+  }
+
+  function readArray(key) {
+    try {
+      const raw = JSON.parse(localStorage.getItem(key) || "[]")
+      return Array.isArray(raw) ? raw : []
+    } catch {
+      return []
+    }
+  }
+
+  function renderDashboard() {
+    const savings = readArray(SAVINGS_KEY)
+    const wishlist = readArray(WISHLIST_KEY)
+    const plannerData = loadData()
+    const payoffStats = getPayoffStats()
+
+    const currentMonth = months[new Date().getMonth()]
+    const currentEntries = plannerData[currentMonth] || []
+
+    const totalSavings = savings.reduce((sum, goal) => sum + Number(goal.saved || 0), 0)
+    const netWorth = totalSavings - payoffStats.totalRemaining
+    const burn = currentEntries.reduce((sum, item) => sum + Number(item.amount || 0), 0) + payoffStats.monthlyDue
+
+    document.getElementById("dashNetWorth").textContent = money(netWorth)
+    document.getElementById("dashBurn").textContent = money(burn)
+
+    const upcoming = currentEntries
+      .filter(item => item.date)
+      .sort((a, b) => new Date(a.date) - new Date(b.date))[0]
+
+    document.getElementById("dashUpcoming").textContent = upcoming
+      ? `${upcoming.label || "Payment"} · ₱${money(upcoming.amount)}`
+      : "None"
+
+    const topWishlist = wishlist
+      .filter(item => item.status !== "purchased")
+      .sort((a, b) => {
+        const order = { "very-high": 5, high: 4, medium: 3, low: 2, "very-low": 1 }
+        return (order[b.priority] || 0) - (order[a.priority] || 0) || Number(b.price || 0) - Number(a.price || 0)
+      })[0]
+
+    document.getElementById("dashTopWishlist").textContent = topWishlist
+      ? `${topWishlist.name} · ₱${money(topWishlist.price)}`
+      : "None"
+  }
+
+  renderDashboard()
+</script>
+</body>
+</html>

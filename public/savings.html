@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SaveIt | WorthIt</title>
+  <link rel="shortcut icon" href="assets/worthit.png" type="image/x-icon">
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/worthit-shell.css?v=20260813-1">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Oswald:wght@400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+<header
+  id="worthitShell"
+  data-app="saveit"
+  data-root=""
+></header>
+
+<div class="planner-container">
+
+  <section id="savingsPage" class="page-section active">
+<div class="app-page-header">
+  <div class="app-page-title">
+    <h2>SaveIt — Savings Goals</h2>
+    <p>Track your goals and how much you still need to save.</p>
+  </div>
+
+  <div id="savingsStats" class="app-mini-stats">
+    <div class="summary-card total">
+      <span class="label">TOTAL GOALS</span>
+      <div class="value" id="savingsGoalCount">0</div>
+    </div>
+
+    <div class="summary-card total">
+      <span class="label">TOTAL TARGET</span>
+      <div class="value">₱<span id="savingsTotalTarget">0</span></div>
+    </div>
+
+    <div class="summary-card high">
+      <span class="label">TOTAL SAVED</span>
+      <div class="value">₱<span id="savingsTotalSaved">0</span></div>
+    </div>
+
+    <div class="summary-card med">
+      <span class="label">LEFT TO SAVE</span>
+      <div class="value">₱<span id="savingsLeftTotal">0</span></div>
+    </div>
+  </div>
+  </div>
+
+  <section class="summary-card" style="margin:0 1.5rem 1.5rem;">
+    <div id="savingsList" class="savings-list">
+      <div class="wishlist-table-empty">No savings goals yet.</div>
+    </div>
+  </section>
+
+</section>
+</div>
+
+<div class="modal" id="savingsModal">
+  <div class="modal-content">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+      <h3 style="margin:0;">Add Savings Goal</h3>
+      <button
+        type="button"
+        onclick="closeSavingsModal()"
+        style="background:none; border:none; color:var(--text-secondary); font-size:1.3rem; cursor:pointer; line-height:1;"
+        data-testid="savings-modal-close-btn"
+      >✖</button>
+    </div>
+
+    <div class="form-group">
+      <input id="savingsName" placeholder="Goal name" data-testid="savings-name-input">
+    </div>
+
+    <div class="form-group">
+      <input id="savingsTarget" type="number" placeholder="Target amount" data-testid="savings-target-input">
+    </div>
+
+    <div class="form-group">
+      <input id="savingsSaved" type="number" placeholder="Amount saved so far" data-testid="savings-saved-input">
+    </div>
+
+    <div class="form-group">
+  <label for="savingsAccount">Stored in SpendIt account</label>
+
+  <select id="savingsAccount" data-testid="savings-account-select">
+    <option value="">Choose where this savings is stored</option>
+  </select>
+</div>
+
+    <button class="btn btn-primary" style="width:100%; justify-content:center;" onclick="addSavingsGoal()" data-testid="savings-submit-btn">
+      Add Goal
+    </button>
+  </div>
+</div>
+
+<div class="modal" id="savingsDeleteModal">
+  <div class="modal-content">
+    <h3>Delete Goal</h3>
+    <p style="margin:1rem 0; color:var(--text-secondary);">
+      Are you sure you want to delete <strong id="savingsDeleteName" style="color:var(--text);"></strong>?
+    </p>
+
+    <div style="display:flex; gap:1rem; justify-content:flex-end;">
+      <button class="btn btn-secondary" onclick="closeSavingsDeleteModal()" data-testid="savings-delete-cancel-btn">Cancel</button>
+      <button class="btn btn-primary" onclick="deleteSavingsGoal()" data-testid="savings-delete-confirm-btn">Delete</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script src="js/shared.js"></script>
+<script src="js/savings.js"></script>
+<script src="js/worthit-shell.js"></script>
+
+<script
+  type="module"
+  src="js/auth-shell.js"
+></script>
+
+<script
+  type="module"
+  src="js/saveit-sync.js"
+></script>
+
+<div class="quick-action-overlay" id="quickActionOverlay" onclick="closeQuickAddMenu()"></div>
+
+<div class="quick-action-menu" id="quickActionMenu">
+  <button class="quick-action-row" type="button" onclick="openSavingsModal(); closeQuickAddMenu();">
+    <span class="quick-action-icon">✓</span>
+    <span class="quick-action-label">Add Savings Goal</span>
+  </button>
+</div>
+
+<button class="floating-add-btn" id="floatingAddBtn" type="button" onclick="toggleQuickAddMenu()">＋</button>
+
+</body>
+</html>

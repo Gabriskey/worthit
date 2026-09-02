@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PlanIt — Planner | WorthIt</title>
+  <link rel="shortcut icon" href="assets/worthit.png" type="image/x-icon">
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/worthit-shell.css?v=20260813-1">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Oswald:wght@400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<div class="modal-backdrop" id="modalBackdrop" onclick="toggleGlobal()"></div>
+
+<div class="global-add" id="globalAdd">
+  <h3 style="margin-bottom:1.5rem;">Add Recurring Expense</h3>
+  <div class="row">
+    <input id="gLabel" placeholder="Expense label" data-testid="planner-global-label-input">
+    <input id="gAmount" type="number" placeholder="Amount" data-testid="planner-global-amount-input">
+  </div>
+
+  <div class="form-group">
+    <input id="gDay" type="number" min="1" max="31" placeholder="Every nth day (e.g. 1, 15, 30)" data-testid="planner-global-day-input">
+  </div>
+
+  <div class="form-group">
+  <input id="gInstallmentTotal" type="number" placeholder="Total installment amount (optional)">
+</div>
+
+  <div class="month-checks" id="monthChecks"></div>
+
+  <button onclick="addMonthly()" data-testid="planner-global-submit-btn">Add Monthly</button>
+</div>
+<header
+  id="worthitShell"
+  data-app="planit"
+  data-root=""
+></header>
+
+<div class="planner-container">
+
+
+  <section id="plannerPage" class="page-section active">
+    <div class="app-page-header">
+<div class="app-page-title">
+  <h2>PlanIt — Monthly Planner</h2>
+  <p>Plan your expenses, track priorities, and stay on top of your budget.</p>
+
+  <div style="display:flex; align-items:center; gap:0.75rem; margin-top:1rem;">
+    <a
+      href="planner.html"
+      class="btn btn-primary"
+      style="text-decoration:none;"
+    >
+      Planner
+    </a>
+
+    <a
+      href="wishlist.html"
+      class="btn btn-secondary"
+      style="text-decoration:none;"
+    >
+      Wishlist
+    </a>
+  </div>
+</div>
+
+  <div id="summary" class="app-mini-stats"></div>
+</div>
+
+<details class="payoff-panel payoff-panel-compact payoff-dropdown">
+  <summary class="payoff-dropdown-summary">
+    <span class="payoff-dropdown-title">INSTALLMENTS</span>
+    <span class="payoff-dropdown-arrow" aria-hidden="true"></span>
+  </summary>
+
+  <section class="summary-grid payoff-summary-grid payoff-summary-inside-dropdown">
+    <div class="summary-card total">
+      <span class="label">ACTIVE INSTALLMENTS</span>
+      <div class="value" id="payoffActiveCount">0</div>
+    </div>
+
+    <div class="summary-card high">
+      <span class="label">INSTALLMENT ENTRIES</span>
+      <div class="value"><span id="payoffTotalOriginal">0</span></div>
+    </div>
+
+    <div class="summary-card med">
+      <span class="label">REMAINING BALANCE</span>
+      <div class="value">₱<span id="payoffTotalRemaining">0</span></div>
+    </div>
+
+    <div class="summary-card total">
+      <span class="label">MONTHLY PAYMENTS</span>
+      <div class="value">₱<span id="payoffMonthlyDue">0</span></div>
+    </div>
+  </section>
+
+  <div id="payoffList" class="payoff-list payoff-list-compact">
+    <div class="wishlist-table-empty">No payoff items yet.</div>
+  </div>
+</details>
+
+<div id="planner" style="padding: 0 1.5rem;"></div>
+
+<section id="plannerPurchasedSection" class="wishlist-panel purchased-wishlist-section">
+  <div class="purchased-wishlist-header">
+    <div>
+      <h3>Purchased Items</h3>
+      <p>Items purchased from Planner or Wishlist will appear here.</p>
+    </div>
+  </div>
+
+  <div id="plannerPurchasedList" class="purchased-wishlist-list">
+    <div class="wishlist-table-empty">No purchased items yet.</div>
+  </div>
+</section>
+  </section>
+</div>
+
+<div class="modal" id="deleteModal">
+  <div class="modal-content">
+    <h3>Delete Item</h3>
+    <p style="margin:1rem 0; color:var(--text-secondary);">
+      Are you sure you want to delete <strong id="deleteItemName" style="color:var(--text);"></strong>?
+    </p>
+
+    <div style="display:flex; gap:1rem; justify-content:flex-end;">
+      <button class="btn btn-secondary" onclick="closeDeleteModal()" data-testid="planner-delete-cancel-btn">Cancel</button>
+      <button class="btn btn-primary" onclick="deletePlannerItem()" data-testid="planner-delete-confirm-btn">Delete</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="payoffModal">
+  <div class="modal-content">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+      <h3 style="margin:0;">Add Payoff</h3>
+      <button type="button" onclick="closePayoffModal()" class="modal-x-btn">✖</button>
+    </div>
+
+    <div class="form-group">
+      <input id="payoffName" placeholder="Name e.g. iPhone Installment">
+    </div>
+
+    <div class="form-group">
+      <input id="payoffTotal" type="number" placeholder="Total amount">
+    </div>
+
+    <div class="form-group">
+      <input id="payoffPaid" type="number" placeholder="Amount paid so far">
+    </div>
+
+    <div class="form-group">
+      <input id="payoffMonthly" type="number" placeholder="Monthly payment">
+    </div>
+
+    <div class="form-group">
+      <input id="payoffDueDay" type="number" min="1" max="31" placeholder="Due day e.g. 15">
+    </div>
+
+    <div class="form-group">
+      <input id="payoffCategory" placeholder="Category e.g. Loan, Installment, Credit Card">
+    </div>
+
+    <button class="btn btn-primary" type="button" onclick="addPayoff()" style="width:100%; justify-content:center;">
+      Save Payoff
+    </button>
+  </div>
+</div>
+
+<div class="modal" id="plannerDateModal">
+  <div class="modal-content">
+    <h3 id="plannerDateModalTitle" style="margin-bottom:1rem;">Change Date</h3>
+    <p id="plannerDateModalDescription" style="margin-bottom:1rem; color:var(--text-secondary);">
+      Choose a new due date for this planner item.
+    </p>
+
+    <div id="plannerDateCalendar" class="wishlist-date-picker"></div>
+
+    <div style="display:flex; justify-content:flex-end; margin-top:1rem;">
+      <button class="btn btn-secondary" type="button" onclick="closePlannerDateModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="plannerLinkModal">
+  <div class="modal-content">
+    <h3 style="margin-bottom:1rem;">Edit Link</h3>
+
+    <div class="form-group">
+      <input id="plannerLinkEditInput" placeholder="Paste link">
+    </div>
+
+    <div style="display:flex; gap:0.75rem; justify-content:flex-end; flex-wrap:wrap;">
+      <button class="btn btn-secondary" type="button" onclick="removePlannerLink()">Remove Link</button>
+      <button class="btn btn-secondary" type="button" onclick="closePlannerLinkModal()">Cancel</button>
+      <button class="btn btn-primary" type="button" onclick="savePlannerLink()">Save Link</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script src="js/shared.js"></script>
+<script src="js/planner.js"></script>
+<script src="js/worthit-shell.js"></script>
+
+<script
+  type="module"
+  src="js/auth-shell.js"
+></script>
+
+<script
+  type="module"
+  src="js/planit-sync.js"
+></script>
+
+<div class="quick-action-overlay" id="quickActionOverlay" onclick="closeQuickAddMenu()"></div>
+
+<div class="quick-action-menu" id="quickActionMenu">
+  <button class="quick-action-row" type="button" onclick="addCurrentMonthExpense(); closeQuickAddMenu();">
+    <span class="quick-action-icon">₱</span>
+    <span class="quick-action-label">Add Expense</span>
+  </button>
+
+  <button class="quick-action-row" type="button" onclick="toggleGlobal(); closeQuickAddMenu();">
+    <span class="quick-action-icon">↻</span>
+    <span class="quick-action-label">Add Recurring Expense</span>
+  </button>
+</div>
+
+<button class="floating-add-btn" id="floatingAddBtn" type="button" onclick="toggleQuickAddMenu()">＋</button>
+
+</body>
+</html>

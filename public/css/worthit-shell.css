@@ -1,0 +1,769 @@
+/* ========================================
+   WORTHIT SHARED APP SHELL
+   Global header + app-specific subnavigation
+   ======================================== */
+
+:root {
+  --worthit-shell-bg: rgba(24, 24, 27, 0.88);
+  --worthit-shell-sub-bg: rgba(15, 15, 16, 0.92);
+  --worthit-shell-border: rgba(255, 255, 255, 0.1);
+
+  --worthit-shell-text: #fafaf9;
+  --worthit-shell-muted: #a1a1aa;
+  --worthit-shell-faint: #71717a;
+
+  --worthit-shell-accent: #f9d474;
+  --worthit-shell-accent-muted: #d4af37;
+  --worthit-shell-accent-soft: rgba(249, 212, 116, 0.15);
+
+  --worthit-shell-surface: #18181b;
+  --worthit-shell-surface-hover: #2a2a2e;
+
+  --worthit-shell-shadow: 0 4px 18px rgba(0, 0, 0, 0.3);
+}
+
+:root[data-theme="light"],
+body.light-mode {
+  --worthit-shell-bg: rgba(255, 255, 255, 0.9);
+  --worthit-shell-sub-bg: rgba(245, 245, 244, 0.94);
+  --worthit-shell-border: rgba(0, 0, 0, 0.08);
+
+  --worthit-shell-text: #18181b;
+  --worthit-shell-muted: #52525b;
+  --worthit-shell-faint: #a1a1aa;
+
+  --worthit-shell-accent: #ca8a04;
+  --worthit-shell-accent-muted: #b87503;
+  --worthit-shell-accent-soft: rgba(202, 138, 4, 0.12);
+
+  --worthit-shell-surface: #ffffff;
+  --worthit-shell-surface-hover: #f5f5f4;
+
+  --worthit-shell-shadow: 0 4px 18px rgba(0, 0, 0, 0.08);
+}
+
+/* Entire shared header */
+
+.worthit-shell {
+  position: sticky;
+  top: 0;
+  z-index: 5000;
+  color: var(--worthit-shell-text);
+  box-shadow: var(--worthit-shell-shadow);
+}
+
+/* Main WorthIt navigation */
+
+.worthit-shell__top {
+  position: relative;
+  z-index: 2;
+
+  background: var(--worthit-shell-bg);
+  border-bottom: 1px solid var(--worthit-shell-border);
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+}
+
+.worthit-shell__inner {
+  width: min(1400px, calc(100vw - 32px));
+  min-height: 82px;
+  margin: 0 auto;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2rem;
+}
+
+.worthit-shell__main {
+  min-width: 0;
+
+  display: flex;
+  align-items: center;
+  gap: 2.4rem;
+}
+
+.worthit-shell__brand {
+  flex: 0 0 auto;
+
+  color: var(--worthit-shell-accent);
+  font-family: "Segoe UI", Inter, Arial, sans-serif;
+  font-size: 2.15rem;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: 0.08em;
+  text-decoration: none;
+  text-transform: uppercase;
+
+  background: linear-gradient(
+    135deg,
+    var(--worthit-shell-accent),
+    var(--worthit-shell-accent-muted)
+  );
+
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.worthit-shell__nav {
+  min-width: 0;
+
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+}
+
+.worthit-shell__divider {
+  color: var(--worthit-shell-faint);
+  font-weight: 700;
+  user-select: none;
+}
+
+.worthit-shell__link {
+  position: relative;
+
+  color: var(--worthit-shell-muted);
+  padding: 0.42rem 0.25rem;
+
+  font-family: "Segoe UI", Inter, Arial, sans-serif;
+  font-size: 1.08rem;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: 0.08em;
+
+  text-decoration: none;
+  text-transform: uppercase;
+  white-space: nowrap;
+
+  transition:
+    color 0.2s ease,
+    transform 0.2s ease,
+    text-shadow 0.2s ease;
+}
+
+.worthit-shell__link:hover {
+  color: var(--worthit-shell-accent);
+  transform: translateY(-2px);
+  text-shadow: 0 0 18px var(--worthit-shell-accent-soft);
+}
+
+.worthit-shell__link.active {
+  color: var(--worthit-shell-accent-muted);
+}
+
+/* Shared theme button */
+
+.worthit-shell__theme {
+  flex: 0 0 auto;
+
+  width: 40px;
+  height: 40px;
+  padding: 0;
+
+  display: grid;
+  place-items: center;
+
+  background: var(--worthit-shell-surface);
+  border: 1px solid var(--worthit-shell-border);
+  border-radius: 50%;
+
+  color: var(--worthit-shell-text);
+  font: inherit;
+  font-size: 1.15rem;
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.worthit-shell__theme:hover {
+  background: var(--worthit-shell-surface-hover);
+  border-color: var(--worthit-shell-accent);
+  transform: rotate(15deg) scale(1.08);
+}
+
+/* App-specific secondary navigation */
+
+.worthit-shell__subnav {
+  position: relative;
+  z-index: 1;
+
+  background: var(--worthit-shell-sub-bg);
+  border-bottom: 1px solid var(--worthit-shell-border);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.worthit-shell__subnav-inner {
+  width: min(1400px, calc(100vw - 32px));
+  min-height: 54px;
+  margin: 0 auto;
+
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.worthit-shell__app-name {
+  flex: 0 0 auto;
+
+  color: var(--worthit-shell-accent);
+  font-family: "Segoe UI", Inter, Arial, sans-serif;
+  font-size: 0.86rem;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.worthit-shell__subnav-links {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.worthit-shell__sub-link {
+  position: relative;
+
+  background: transparent;
+  border: 0;
+  padding: 0.42rem 0.35rem;
+
+  color: var(--worthit-shell-muted);
+  font-family: "Segoe UI", Inter, Arial, sans-serif;
+  font-size: 0.88rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+
+  text-decoration: none;
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+
+  transition:
+    color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.worthit-shell__sub-link:hover {
+  color: var(--worthit-shell-accent);
+  transform: translateY(-1px);
+}
+
+.worthit-shell__sub-link.active {
+  color: var(--worthit-shell-accent);
+}
+
+.worthit-shell__sub-link.active::after {
+  content: "";
+
+  position: absolute;
+  left: 0.35rem;
+  right: 0.35rem;
+  bottom: -4px;
+
+  height: 2px;
+  border-radius: 999px;
+  background: var(--worthit-shell-accent);
+}
+
+/* Responsive layout */
+
+@media (max-width: 1050px) {
+  .worthit-shell__inner {
+    padding: 16px 0;
+    align-items: flex-start;
+  }
+
+  .worthit-shell__main {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 1rem;
+  }
+}
+
+@media (max-width: 700px) {
+  .worthit-shell__inner,
+  .worthit-shell__subnav-inner {
+    width: min(100% - 24px, 1400px);
+  }
+
+  .worthit-shell__inner {
+    min-height: auto;
+    gap: 1rem;
+  }
+
+  .worthit-shell__brand {
+    font-size: 1.65rem;
+  }
+
+  .worthit-shell__nav {
+    gap: 0.5rem;
+  }
+
+  .worthit-shell__link {
+    font-size: 0.88rem;
+  }
+
+  .worthit-shell__divider {
+    display: none;
+  }
+
+  .worthit-shell__subnav-inner {
+    padding: 10px 0;
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+}
+
+/* ========================================
+   LANDIT BACKGROUND
+   ======================================== */
+
+html[data-theme="dark"] {
+  background: #151515;
+}
+
+html[data-theme="dark"] body {
+  background-color: #151515;
+
+  background-image:
+    repeating-linear-gradient(
+      128deg,
+      rgba(255, 255, 255, 0.018) 0 2px,
+      transparent 2px 12px
+    ),
+    repeating-linear-gradient(
+      18deg,
+      rgba(255, 255, 255, 0.012) 0 1px,
+      transparent 1px 7px
+    ),
+    radial-gradient(
+      circle at 75% 18%,
+      rgba(234, 224, 210, 0.055),
+      transparent 30%
+    ),
+    linear-gradient(
+      180deg,
+      #202020 0%,
+      #101010 100%
+    );
+
+  background-attachment: fixed;
+}
+
+/* Disable WorthIt's previous overlays */
+html[data-theme="dark"] body::before,
+html[data-theme="dark"] body::after {
+  content: none;
+}
+
+/* ========================================
+   ACCOUNT MENU
+   ======================================== */
+
+.worthit-shell__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+
+/* Account button + dropdown container */
+
+.worthit-shell__account-wrap {
+  position: relative;
+}
+
+
+.worthit-shell__account {
+  min-height: 38px;
+  padding: 0 0.9rem;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+
+  border: 1px solid
+    var(
+      --worthit-shell-border,
+      rgba(244, 240, 232, 0.14)
+    );
+
+  border-radius: 999px;
+
+  background:
+    var(
+      --worthit-shell-surface,
+      rgba(255, 255, 255, 0.04)
+    );
+
+  color:
+    var(
+      --worthit-shell-muted,
+      #bebab1
+    );
+
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 800;
+
+  cursor: pointer;
+
+  transition:
+    border-color 0.2s ease,
+    color 0.2s ease,
+    background 0.2s ease;
+}
+
+
+.worthit-shell__account:hover,
+.worthit-shell__account-wrap.is-open
+  .worthit-shell__account {
+
+  border-color:
+    var(
+      --worthit-shell-accent,
+      #f9d474
+    );
+
+  color:
+    var(
+      --worthit-shell-accent,
+      #f9d474
+    );
+}
+
+
+.worthit-shell__account-chevron {
+  font-size: 0.7rem;
+
+  transition:
+    transform 0.18s ease;
+}
+
+
+.worthit-shell__account-wrap.is-open
+  .worthit-shell__account-chevron {
+
+  transform:
+    rotate(180deg);
+}
+
+
+/* Dropdown */
+
+.worthit-shell__account-menu {
+  position: absolute;
+
+  top:
+    calc(100% + 10px);
+
+  right: 0;
+
+  width: 240px;
+
+  padding: 8px;
+
+  z-index: 6000;
+
+  display: none;
+
+  border: 1px solid
+    var(
+      --worthit-shell-border,
+      rgba(244, 240, 232, 0.14)
+    );
+
+  border-radius: 16px;
+
+  background:
+    var(
+      --worthit-shell-sub-bg,
+      rgba(15, 15, 16, 0.96)
+    );
+
+  box-shadow:
+    0 18px 50px
+    rgba(0, 0, 0, 0.35);
+
+  backdrop-filter:
+    blur(18px);
+
+  -webkit-backdrop-filter:
+    blur(18px);
+}
+
+
+.worthit-shell__account-wrap.is-open
+  .worthit-shell__account-menu {
+
+  display: block;
+}
+
+
+/* Account information */
+
+.worthit-shell__account-info {
+  padding:
+    10px 10px 11px;
+
+  display: grid;
+  gap: 4px;
+}
+
+
+.worthit-shell__account-info strong {
+  color:
+    var(
+      --worthit-shell-text,
+      #fafaf9
+    );
+
+  font-size: 0.85rem;
+}
+
+
+.worthit-shell__account-info span {
+  overflow: hidden;
+
+  color:
+    var(
+      --worthit-shell-muted,
+      #a1a1aa
+    );
+
+  font-size: 0.72rem;
+
+  text-overflow:
+    ellipsis;
+
+  white-space:
+    nowrap;
+}
+
+
+.worthit-shell__account-divider {
+  height: 1px;
+
+  margin:
+    2px 4px 6px;
+
+  background:
+    var(
+      --worthit-shell-border,
+      rgba(244, 240, 232, 0.14)
+    );
+}
+
+
+/* Sign-out button */
+
+.worthit-shell__signout {
+  width: 100%;
+
+  padding:
+    10px 11px;
+
+  border: 0;
+
+  border-radius: 10px;
+
+  background:
+    transparent;
+
+  color:
+    var(
+      --worthit-shell-muted,
+      #a1a1aa
+    );
+
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 800;
+
+  text-align: left;
+
+  cursor: pointer;
+}
+
+
+.worthit-shell__signout:hover {
+  background:
+    rgba(
+      255,
+      255,
+      255,
+      0.06
+    );
+
+  color:
+    var(
+      --worthit-shell-text,
+      #fafaf9
+    );
+}
+
+/* ========================================
+   CLOUD LOADING SCREEN
+   ======================================== */
+
+.worthit-cloud-loading {
+  position: fixed;
+  inset: 0;
+  z-index: 4900;
+
+  display: none;
+  place-items: center;
+
+  background-color: #151515;
+
+  background-image:
+    repeating-linear-gradient(
+      128deg,
+      rgba(255, 255, 255, 0.018) 0 2px,
+      transparent 2px 12px
+    ),
+    repeating-linear-gradient(
+      18deg,
+      rgba(255, 255, 255, 0.012) 0 1px,
+      transparent 1px 7px
+    ),
+    radial-gradient(
+      circle at 75% 18%,
+      rgba(234, 224, 210, 0.055),
+      transparent 30%
+    ),
+    linear-gradient(
+      180deg,
+      #202020 0%,
+      #101010 100%
+    );
+}
+
+.worthit-cloud-is-loading
+  .worthit-cloud-loading {
+  display: grid;
+}
+
+.worthit-cloud-loading__inner {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+}
+
+.worthit-cloud-loading__mark {
+  font-size: 2rem;
+}
+
+.worthit-cloud-loading__text {
+  color: var(
+    --worthit-shell-muted,
+    #a1a1aa
+  );
+
+  font-family:
+    "Segoe UI",
+    Inter,
+    Arial,
+    sans-serif;
+
+  font-size: 0.78rem;
+  font-weight: 800;
+
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+/* Cloud sync status */
+
+.worthit-shell__cloud-status {
+  padding: 9px 10px;
+
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  color:
+    var(
+      --worthit-shell-muted,
+      #a1a1aa
+    );
+
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+
+.worthit-shell__cloud-dot {
+  width: 7px;
+  height: 7px;
+
+  flex: 0 0 auto;
+
+  border-radius: 50%;
+
+  background: #78b889;
+}
+
+
+/* Saving */
+
+.worthit-shell__cloud-status[
+  data-state="saving"
+]
+.worthit-shell__cloud-dot {
+  background: #f9d474;
+
+  animation:
+    worthit-cloud-pulse
+    1s ease-in-out
+    infinite;
+}
+
+
+/* Saved */
+
+.worthit-shell__cloud-status[
+  data-state="saved"
+]
+.worthit-shell__cloud-dot {
+  background: #78b889;
+}
+
+
+/* Error */
+
+.worthit-shell__cloud-status[
+  data-state="error"
+]
+.worthit-shell__cloud-dot {
+  background: #e06b75;
+}
+
+
+.worthit-shell__cloud-status[
+  data-state="error"
+] {
+  color: #e06b75;
+}
+
+
+@keyframes worthit-cloud-pulse {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}

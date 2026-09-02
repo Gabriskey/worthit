@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <title>PlanIt — Wishlist | WorthIt</title>
+  <link rel="shortcut icon" href="assets/worthit.png" type="image/x-icon">
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/worthit-shell.css?v=20260813-1">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Oswald:wght@400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+<header
+  id="worthitShell"
+  data-app="planit"
+  data-root=""
+></header>
+
+<div class="planner-container">
+
+
+<section id="wishlistPage" class="page-section active">
+
+<div class="wishlist-page-header">
+  <div class="wishlist-page-title">
+    <h2>PlanIt — Wishlist</h2>
+    <p>Track the things you want, organize priorities, and plan future purchases.</p>
+  <div style="display:flex; align-items:center; gap:0.75rem; margin-top:1rem;">
+  <a
+    href="planner.html"
+    class="btn btn-secondary"
+    style="text-decoration:none;"
+  >
+    Planner
+  </a>
+
+  <a
+    href="wishlist.html"
+    class="btn btn-primary"
+    style="text-decoration:none;"
+  >
+    Wishlist
+  </a>
+</div>
+  </div>
+
+  <div id="wishlistStats" class="wishlist-mini-stats">
+  <div class="summary-card total">
+    <span class="label">TOTAL ITEMS</span>
+    <div class="value" id="wishlistTotalCount">0</div>
+  </div>
+
+  <div class="summary-card total">
+    <span class="label">TOTAL VALUE</span>
+    <div class="value">₱<span id="wishlistGrandTotal">0</span></div>
+  </div>
+
+  <div class="summary-card high">
+    <span class="label">HIGH PRIORITY</span>
+    <div class="value">
+      <span id="wishlistHighCount">0</span> · ₱<span id="wishlistHighTotal">0</span>
+    </div>
+  </div>
+
+<div class="summary-card med">
+  <span class="label">MEDIUM PRIORITY</span>
+  <div class="value">
+    <span id="wishlistMediumCount">0</span> · ₱<span id="wishlistMediumTotal">0</span>
+  </div>
+</div>
+</div>
+ </div>
+
+<div id="wishlistToolbar" class="wishlist-toolbar">
+  <div class="wishlist-toolbar-top">
+    <div class="wishlist-toolbar-row wishlist-toolbar-row--left">
+      <div class="wishlist-view-switch" data-testid="wishlist-view-switch">
+        <button
+          id="wishlistWishlistsViewBtn"
+          class="wishlist-filter-chip"
+          type="button"
+          onclick="setWishlistScreenMode('collections')"
+          data-testid="wishlist-collections-view-btn"
+        >
+          Wishlists View
+        </button>
+
+        <button
+          id="wishlistTableViewBtn"
+          class="wishlist-filter-chip"
+          type="button"
+          onclick="setWishlistScreenMode('table')"
+          data-testid="wishlist-table-view-btn"
+        >
+          Table Mode
+        </button>
+      </div>
+
+      <div id="wishlistTableControls" style="display:none; align-items:center; gap:0.75rem; flex-wrap:wrap;">
+        <span class="wishlist-filter-label">Filter by:</span>
+
+        <select
+          id="wishlistPriorityFilter"
+          class="wishlist-filter-chip wishlist-filter-chip-select"
+          onchange="setWishlistFilter('priority', this.value)"
+          data-testid="wishlist-priority-filter"
+        >
+<option value="all">All Priorities</option>
+<option value="low">Low</option>
+<option value="medium">Medium</option>
+<option value="high">High</option>
+        </select>
+
+        <select
+          id="wishlistCollectionFilter"
+          class="wishlist-filter-chip wishlist-filter-chip-select"
+          onchange="setWishlistFilter('collectionId', this.value)"
+          data-testid="wishlist-collection-filter"
+        >
+          <option value="all">All Wishlists</option>
+        </select>
+
+        <button
+          class="wishlist-filter-clear"
+          type="button"
+          onclick="clearWishlistFilters()"
+          data-testid="wishlist-clear-filters-btn"
+        >
+          Clear Filters
+        </button>
+      </div>
+
+<div id="wishlistCollectionControls" style="display:none; align-items:center; gap:0.75rem; flex-wrap:wrap;">
+  <button
+    id="wishlistLargeViewBtn"
+    class="wishlist-filter-chip wishlist-style-chip"
+    type="button"
+    onclick="setWishlistDisplayStyle('large')"
+  >
+    Large
+  </button>
+
+  <button
+    id="wishlistSmallViewBtn"
+    class="wishlist-filter-chip wishlist-style-chip"
+    type="button"
+    onclick="setWishlistDisplayStyle('small')"
+  >
+    Small
+  </button>
+
+  <button
+    id="wishlistCompactViewBtn"
+    class="wishlist-filter-chip wishlist-style-chip"
+    type="button"
+    onclick="setWishlistDisplayStyle('compact')"
+  >
+    Compact
+  </button>
+</div>
+    </div>
+
+  </div>
+
+</div>
+
+<section id="wishlistCollectionsSection" class="wishlist-panel" style="margin:0 1.5rem 1.5rem;">
+  <div id="wishlistCollectionsHeader" class="wishlist-collection-detail-bar" style="display:none;">
+  <button class="btn btn-secondary" type="button" onclick="backToCollectionsView()">← Back</button>
+
+  <div class="wishlist-collection-detail-copy">
+    <h3 id="activeCollectionTitle" style="margin:0;"></h3>
+    <p id="activeCollectionNotes" style="margin:4px 0 0; color:var(--text-secondary);"></p>
+  </div>
+
+  <div class="wishlist-collection-detail-actions">
+    <button class="btn btn-secondary" type="button" onclick="openEditCollectionModal()">
+      Edit Collection
+    </button>
+    <button class="btn btn-secondary" type="button" onclick="confirmDeleteCollection()">
+      Delete Collection
+    </button>
+  </div>
+</div>
+
+  <div id="wishlistCollectionsGrid" class="wishlist-collections-grid"></div>
+</section>
+
+<div class="wishlist-table" id="wishlistSection" style="display:none;">
+<div class="wishlist-table-header">
+  <div onclick="setWishlistSort('name')">NAME</div>
+  <div onclick="setWishlistSort('price')">PRICE</div>
+<div onclick="setWishlistSort('priority')">PRIORITY</div>
+<div onclick="setWishlistSort('collectionName')">COLLECTION</div>
+<div>PLANNER</div>
+<div>LINK</div>
+<div>ACTIONS</div>
+</div>
+
+  <div id="wishlistTableBody">
+    <div class="wishlist-table-empty">Wishlist items will go here.</div>
+  </div>
+</div>
+
+<section id="purchasedWishlistSection" class="wishlist-panel purchased-wishlist-section">
+  <div class="purchased-wishlist-header">
+    <div>
+      <h3>Purchased Items</h3>
+      <p>Items you already bought will appear here.</p>
+    </div>
+  </div>
+
+  <div id="purchasedWishlistList" class="purchased-wishlist-list">
+    <div class="wishlist-table-empty">No purchased items yet.</div>
+  </div>
+</section>
+
+</section>
+</div>
+
+<div class="modal" id="wishlistModal">
+  <div class="modal-content">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+      <h3 style="margin:0;">Add Wishlist Item</h3>
+      <button
+        type="button"
+        onclick="closeWishlistModal()"
+        style="background:none; border:none; color:var(--text-secondary); font-size:1.3rem; cursor:pointer; line-height:1;"
+        data-testid="wishlist-modal-close-btn"
+      >✖</button>
+    </div>
+
+    <div class="form-group">
+      <input id="wishlistName" placeholder="Item name" data-testid="wishlist-name-input">
+    </div>
+
+    <div class="form-group">
+      <input id="wishlistPrice" type="number" placeholder="Price" data-testid="wishlist-price-input">
+    </div>
+
+    <div class="form-group">
+      <select id="wishlistCollection" class="wishlist-inline-select" data-testid="wishlist-collection-select"></select>
+    </div>
+
+    <div class="form-group">
+      <select id="wishlistPriority" data-testid="wishlist-priority-select">
+<option value="low">Low</option>
+<option value="medium">Medium</option>
+<option value="high">High</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <input id="wishlistLink" placeholder="Product link (optional)" data-testid="wishlist-link-input">
+    </div>
+
+    <button class="btn btn-primary" style="width:100%; justify-content:center;" onclick="addItem()" data-testid="wishlist-submit-btn">Add Item</button>
+  </div>
+</div>
+
+<div class="modal" id="wishlistLinkModal">
+  <div class="modal-content">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+      <h3 style="margin:0;">Edit Product Link</h3>
+      <button type="button" onclick="closeWishlistLinkModal()" style="background:none; border:none; color:var(--text-secondary); font-size:1.3rem; cursor:pointer;">✖</button>
+    </div>
+
+    <div class="form-group">
+      <input id="wishlistLinkEditInput" placeholder="Paste product link">
+    </div>
+
+    <div style="display:flex; gap:1rem; justify-content:flex-end;">
+      <button class="btn btn-secondary" type="button" onclick="closeWishlistLinkModal()">Cancel</button>
+      <button class="btn btn-secondary" type="button" onclick="removeWishlistLink()">Remove Link</button>
+      <button class="btn btn-primary" type="button" onclick="saveWishlistLink()">Save Link</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="wishlistCollectionModal">
+  <div class="modal-content">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+      <h3 style="margin:0;">Create Wishlist</h3>
+      <button
+        type="button"
+        onclick="closeCreateCollectionModal()"
+        style="background:none; border:none; color:var(--text-secondary); font-size:1.3rem; cursor:pointer; line-height:1;"
+      >✖</button>
+    </div>
+
+    <div class="form-group">
+      <input id="wishlistCollectionName" placeholder="Wishlist name">
+    </div>
+
+    <div class="form-group">
+      <input id="wishlistCollectionSymbol" placeholder="Symbol / emoji (example: 🏠)">
+    </div>
+
+    <div class="form-group">
+      <input id="wishlistCollectionNotes" placeholder="Notes (optional)">
+    </div>
+
+    <button
+      class="btn btn-primary"
+      style="width:100%; justify-content:center;"
+      type="button"
+      onclick="createWishlistCollection()"
+    >
+      Create Collection
+    </button>
+  </div>
+</div>
+
+<div class="modal" id="editWishlistCollectionModal">
+  <div class="modal-content">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+      <h3 style="margin:0;">Edit Wishlist Collection</h3>
+      <button
+        type="button"
+        onclick="closeEditCollectionModal()"
+        style="background:none; border:none; color:var(--text-secondary); font-size:1.3rem; cursor:pointer; line-height:1;"
+      >✖</button>
+    </div>
+
+    <div class="form-group">
+      <input id="editWishlistCollectionName" placeholder="Collection name">
+    </div>
+
+    <div class="form-group">
+      <input id="editWishlistCollectionSymbol" placeholder="Symbol / emoji">
+    </div>
+
+    <div class="form-group">
+      <input id="editWishlistCollectionNotes" placeholder="Notes (optional)">
+    </div>
+
+    <button
+      class="btn btn-primary"
+      style="width:100%; justify-content:center;"
+      type="button"
+      onclick="saveEditedCollection()"
+    >
+      Save Changes
+    </button>
+  </div>
+</div>
+
+<div class="modal" id="moveWishlistItemModal">
+  <div class="modal-content">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+      <h3 style="margin:0;">Move Item</h3>
+      <button
+        type="button"
+        onclick="closeMoveWishlistItemModal()"
+        style="background:none; border:none; color:var(--text-secondary); font-size:1.3rem; cursor:pointer; line-height:1;"
+      >✖</button>
+    </div>
+
+    <p id="moveWishlistItemLabel" style="margin-bottom:1rem; color:var(--text-secondary);"></p>
+
+    <div class="form-group">
+      <select id="moveWishlistItemCollection"></select>
+    </div>
+
+    <button
+      class="btn btn-primary"
+      style="width:100%; justify-content:center;"
+      type="button"
+      onclick="moveWishlistItemToSelectedCollection()"
+    >
+      Move Item
+    </button>
+  </div>
+</div>
+
+<div class="modal" id="deleteModal">
+    <div class="modal-content">
+        <h3>Delete Item</h3>
+        <p style="margin:1rem 0; color:var(--text-secondary);">
+            Are you sure you want to delete <strong id="deleteItemName" style="color:var(--text);"></strong>?
+        </p>
+
+        <div style="display:flex; gap:1rem; justify-content:flex-end;">
+            <button class="btn btn-secondary" onclick="closeDeleteModal()" data-testid="wishlist-delete-cancel-btn">Cancel</button>
+            <button class="btn btn-primary" onclick="deleteItem()" data-testid="wishlist-delete-confirm-btn">Delete</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal" id="wishlistPlannerModal">
+  <div class="modal-content">
+<h3 id="wishlistPlannerModalTitle" style="margin-bottom:1rem;">Add Date</h3>
+<p id="wishlistPlannerModalDescription" style="margin-bottom:1rem; color:var(--text-secondary);">
+  Choose the date/month where you want to add this wishlist item.
+</p>
+
+    <div id="wishlistPlannerCalendar" class="wishlist-date-picker"></div>
+
+    <div id="wishlistPlannerRemoveSection" style="display:none; margin-top:1.5rem; padding-top:1.5rem; border-top:1px solid var(--border);">
+      <button
+        class="btn btn-primary"
+        type="button"
+        onclick="removeWishlistItemFromPlannerInModal()"
+        style="width:100%; justify-content:center; background:rgba(239,68,68,0.15); border-color:var(--danger); color:var(--danger);"
+        data-testid="wishlist-remove-from-planner-btn"
+      >
+        🗑 Remove from Planner
+      </button>
+    </div>
+
+    <div style="display:flex; justify-content:flex-end; margin-top:1rem;">
+      <button class="btn btn-secondary" type="button" onclick="closeWishlistPlannerModal()" data-testid="wishlist-planner-cancel-btn">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script src="js/shared.js"></script>
+<script src="js/wishlist.js"></script>
+<script src="js/worthit-shell.js"></script>
+<script
+  type="module"
+  src="js/auth-shell.js"
+></script>
+
+<script
+  type="module"
+  src="js/planit-sync.js"
+></script>
+
+<div class="quick-action-overlay" id="quickActionOverlay" onclick="closeQuickAddMenu()"></div>
+
+<div class="quick-action-menu" id="quickActionMenu">
+  <button class="quick-action-row" type="button" onclick="openCreateCollectionModal(); closeQuickAddMenu();">
+    <span class="quick-action-icon">＋</span>
+    <span class="quick-action-label">Create Wishlist</span>
+  </button>
+
+  <button class="quick-action-row" type="button" onclick="openWishlistModal(); closeQuickAddMenu();">
+    <span class="quick-action-icon">♡</span>
+    <span class="quick-action-label">Add Wish</span>
+  </button>
+</div>
+
+<button class="floating-add-btn" id="floatingAddBtn" type="button" onclick="toggleQuickAddMenu()">＋</button>
+
+</body>
+</html>
