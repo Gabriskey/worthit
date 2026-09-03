@@ -767,3 +767,196 @@ html[data-theme="dark"] body::after {
     opacity: 1;
   }
 }
+
+/* Centralized backup modal */
+
+.worthit-backup-home-action {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1.25rem 1.5rem;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  text-align: left;
+}
+
+.worthit-backup-home-action h2,
+.worthit-backup-home-action p {
+  margin: 0;
+}
+
+.worthit-backup-home-action h2 {
+  font-size: 1rem;
+}
+
+.worthit-backup-home-action p {
+  margin-top: 0.25rem;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.worthit-backup-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 2200;
+
+  display: grid;
+  place-items: center;
+  padding: 1.25rem;
+
+  background: rgba(0, 0, 0, 0.68);
+  backdrop-filter: blur(5px);
+}
+
+.worthit-backup-modal[hidden] {
+  display: none;
+}
+
+.worthit-backup-modal__panel {
+  width: min(100%, 620px);
+  max-height: min(760px, calc(100vh - 2.5rem));
+  overflow: auto;
+  padding: 1.5rem;
+
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: var(--surface);
+  box-shadow: var(--shadow-xl);
+}
+
+.worthit-backup-modal__header,
+.worthit-backup-modal__actions,
+.worthit-backup-modal__actions-right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.worthit-backup-modal__header {
+  justify-content: space-between;
+  margin-bottom: 1.25rem;
+}
+
+.worthit-backup-modal__header h2,
+.worthit-backup-modal__eyebrow {
+  margin: 0;
+}
+
+.worthit-backup-modal__header h2 {
+  font-size: 1.35rem;
+}
+
+.worthit-backup-modal__eyebrow {
+  color: var(--accent);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+
+.worthit-backup-modal__close {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  font-size: 1.4rem;
+  line-height: 1;
+}
+
+.worthit-backup-modal__close:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.worthit-backup-modal__choices {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.worthit-backup-option {
+  min-height: 64px;
+  padding: 0.85rem 1rem;
+
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.worthit-backup-option:hover {
+  border-color: var(--accent);
+  background: var(--surface-hover);
+}
+
+.worthit-backup-option input {
+  width: 18px;
+  height: 18px;
+  margin: 0.1rem 0 0;
+  accent-color: var(--accent);
+}
+
+.worthit-backup-option span {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.worthit-backup-option small {
+  color: var(--text-secondary);
+}
+
+.worthit-backup-option--disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
+.worthit-backup-option--disabled:hover {
+  border-color: var(--border);
+  background: transparent;
+}
+
+.worthit-backup-modal__status {
+  min-height: 1.3rem;
+  margin: 1rem 0 0;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.worthit-backup-modal__status.is-error {
+  color: var(--danger);
+}
+
+.worthit-backup-modal__actions {
+  justify-content: space-between;
+  margin-top: 0.5rem;
+}
+
+@media (max-width: 600px) {
+  .worthit-backup-home-action,
+  .worthit-backup-modal__actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .worthit-backup-modal__actions-right {
+    justify-content: stretch;
+  }
+
+  .worthit-backup-modal__actions-right .btn,
+  .worthit-backup-home-action .btn {
+    flex: 1;
+  }
+}
