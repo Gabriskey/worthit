@@ -944,6 +944,110 @@ html[data-theme="dark"] body::after {
   margin-top: 0.5rem;
 }
 
+/* Restore preview is intentionally read-only until a later phase. */
+
+.worthit-restore-notice,
+.worthit-restore-info,
+.worthit-restore-section,
+.worthit-restore-mode,
+.worthit-restore-results {
+  margin: 0 0 1rem;
+}
+
+.worthit-restore-notice {
+  padding: 0.75rem 0.9rem;
+  border-left: 3px solid var(--accent);
+  border-radius: 8px;
+  background: var(--surface-hover);
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.worthit-restore-info,
+.worthit-restore-results {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.worthit-restore-info__meta,
+.worthit-restore-result {
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-hover);
+}
+
+.worthit-restore-info__meta {
+  display: grid;
+  gap: 0.25rem;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.worthit-restore-info__meta strong,
+.worthit-restore-result strong {
+  color: var(--text);
+}
+
+.worthit-restore-section h3,
+.worthit-restore-mode legend {
+  margin: 0 0 0.65rem;
+  color: var(--text);
+  font-size: 1rem;
+}
+
+.worthit-restore-mode {
+  padding: 0;
+  border: 0;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.worthit-restore-mode label {
+  padding: 0.8rem 0.9rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.worthit-restore-mode label:has(input:checked) {
+  border-color: var(--accent);
+  background: var(--surface-hover);
+}
+
+.worthit-restore-mode input {
+  margin-top: 0.15rem;
+  accent-color: var(--accent);
+}
+
+.worthit-restore-mode span,
+.worthit-restore-result__details {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.worthit-restore-mode small,
+.worthit-restore-result small {
+  color: var(--text-secondary);
+}
+
+.worthit-restore-result__line {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.worthit-restore-result__line--valid { color: #78b889; }
+.worthit-restore-result__line--new { color: var(--accent); }
+.worthit-restore-result__line--warning { color: #d99d4a; }
+.worthit-restore-result__line--blocking { color: var(--danger); }
+
+.worthit-restore-section .worthit-backup-option.is-disabled {
+  opacity: 0.58;
+}
+
 @media (max-width: 600px) {
   .worthit-backup-home-action,
   .worthit-backup-modal__actions {

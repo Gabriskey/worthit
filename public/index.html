@@ -248,7 +248,7 @@
   <section class="worthit-backup-home-action" aria-labelledby="worthitBackupHomeTitle">
     <div>
       <h2 id="worthitBackupHomeTitle">Protect your WorthIt data</h2>
-      <p>Create a downloadable backup of the financial data stored in this browser.</p>
+      <p>Create or safely review a downloadable WorthIt backup.</p>
     </div>
 
     <button id="openWorthItBackupModal" class="btn btn-primary" type="button">
@@ -267,7 +267,7 @@
     <div class="worthit-backup-modal__panel">
       <div class="worthit-backup-modal__header">
         <div>
-          <p class="worthit-backup-modal__eyebrow">BACK UP WORTHIT</p>
+          <p id="worthitBackupModalEyebrow" class="worthit-backup-modal__eyebrow">BACK UP WORTHIT</p>
           <h2 id="worthitBackupModalTitle">Choose what to include</h2>
         </div>
 
@@ -281,6 +281,7 @@
         </button>
       </div>
 
+      <div id="worthitBackupExportView">
       <div class="worthit-backup-modal__choices">
         <label class="worthit-backup-option">
           <input type="checkbox" data-worthit-backup-area="earnit" checked>
@@ -349,11 +350,53 @@
           <button id="cancelWorthItBackup" class="btn btn-secondary" type="button">
             Cancel
           </button>
+          <button id="restoreWorthItBackup" class="btn btn-secondary" type="button">
+            Restore Backup
+          </button>
           <button id="exportWorthItBackup" class="btn btn-primary" type="button">
             Export Backup
           </button>
         </div>
       </div>
+      </div>
+
+      <div id="worthitRestorePreview" hidden>
+        <p class="worthit-restore-notice">
+          This backup will be restored into the currently signed-in WorthIt account.
+        </p>
+
+        <div id="worthitRestoreInfo" class="worthit-restore-info"></div>
+
+        <section class="worthit-restore-section" aria-labelledby="worthitRestoreSectionsTitle">
+          <h3 id="worthitRestoreSectionsTitle">Choose sections to preview</h3>
+          <div id="worthitRestoreChoices" class="worthit-backup-modal__choices"></div>
+        </section>
+
+        <fieldset class="worthit-restore-mode">
+          <legend>Preview mode</legend>
+          <label>
+            <input type="radio" name="worthitRestoreMode" value="add" checked>
+            <span><strong>Add to current data</strong><small>Preview only. Existing records would not be overwritten.</small></span>
+          </label>
+          <label>
+            <input type="radio" name="worthitRestoreMode" value="replace">
+            <span><strong>Replace selected data</strong><small>Destructive in a future phase. This screen makes no changes.</small></span>
+          </label>
+        </fieldset>
+
+        <div id="worthitRestorePreviewResults" class="worthit-restore-results" aria-live="polite"></div>
+
+        <div class="worthit-backup-modal__actions">
+          <button id="backToWorthItBackup" class="btn btn-secondary" type="button">
+            Back
+          </button>
+          <button id="cancelWorthItRestore" class="btn btn-secondary" type="button">
+            Cancel
+          </button>
+        </div>
+      </div>
+
+      <input id="worthitRestoreFile" type="file" accept="application/json,.json" hidden>
     </div>
   </div>
 
