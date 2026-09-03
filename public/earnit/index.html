@@ -1160,6 +1160,47 @@ body.light-mode .company-eye-icon {
   display: none;
 }
 
+.import-choice-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: rgba(255,255,255,0.025);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.import-choice-option.is-selected {
+  border-color: rgba(124,153,255,0.45);
+  background: rgba(124,153,255,0.10);
+}
+
+.import-choice-option input[type="radio"] {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  margin: 2px 0 0;
+  accent-color: var(--accent);
+}
+
+.import-choice-copy {
+  display: grid;
+  gap: 4px;
+}
+
+.import-choice-danger {
+  color: #ffd2d2;
+}
+
+.import-result {
+  margin: 10px 0 0;
+  color: var(--accent-2);
+  font-size: 0.9rem;
+}
+
 textarea {
   width: 100%;
   min-height: 110px;
@@ -1859,6 +1900,13 @@ textarea:focus {
 </button>
 </div>
 
+<p
+  id="importResultMessage"
+  class="import-result"
+  role="status"
+  hidden
+></p>
+
 </section>
 
 <section id="insightsPage" class="page">
@@ -2174,6 +2222,102 @@ textarea:focus {
   </div>
 </div>
 
+<div
+  id="importChoiceModalBackdrop"
+  class="modal-backdrop"
+  aria-hidden="true"
+>
+  <div
+    class="modal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="importChoiceModalTitle"
+  >
+    <div class="modal-header">
+      <h3 id="importChoiceModalTitle">
+        Import EarnIt backup
+      </h3>
+
+      <button
+        class="btn"
+        type="button"
+        id="closeImportChoiceModalBtn"
+      >
+        Close
+      </button>
+    </div>
+
+    <p
+      id="importChoiceSummary"
+      class="hint"
+    ></p>
+
+    <label
+      id="importAddOption"
+      class="import-choice-option is-selected"
+    >
+      <input
+        id="importAddRadio"
+        type="radio"
+        name="importMode"
+        value="add"
+        checked
+      >
+
+      <span class="import-choice-copy">
+        <strong>ADD TO CURRENT DATA</strong>
+        <span class="hint">
+          Keep current entries and add only backup entries with new IDs.
+        </span>
+      </span>
+    </label>
+
+    <label
+      id="importReplaceOption"
+      class="import-choice-option"
+    >
+      <input
+        id="importReplaceRadio"
+        type="radio"
+        name="importMode"
+        value="replace"
+      >
+
+      <span class="import-choice-copy">
+        <strong class="import-choice-danger">
+          REPLACE CURRENT DATA
+        </strong>
+        <span class="hint import-choice-danger">
+          Destructive: replace current EarnIt entries with this backup.
+        </span>
+      </span>
+    </label>
+
+    <p
+      id="importReplaceConfirmation"
+      class="hint import-choice-danger is-hidden"
+    ></p>
+
+    <div class="modal-actions">
+      <button
+        class="btn"
+        type="button"
+        id="cancelImportChoiceBtn"
+      >
+        Cancel
+      </button>
+
+      <button
+        class="btn primary"
+        type="button"
+        id="confirmImportChoiceBtn"
+      >
+        Add entries
+      </button>
+    </div>
+  </div>
+</div>
+
   </div>
 
   <script>
@@ -2296,7 +2440,64 @@ const confirmClearAllEntriesBtn =
     'confirmClearAllEntriesBtn'
   );
 
+const importChoiceModalBackdrop =
+  document.getElementById(
+    'importChoiceModalBackdrop'
+  );
+
+const importChoiceSummary =
+  document.getElementById(
+    'importChoiceSummary'
+  );
+
+const importAddOption =
+  document.getElementById(
+    'importAddOption'
+  );
+
+const importReplaceOption =
+  document.getElementById(
+    'importReplaceOption'
+  );
+
+const importAddRadio =
+  document.getElementById(
+    'importAddRadio'
+  );
+
+const importReplaceRadio =
+  document.getElementById(
+    'importReplaceRadio'
+  );
+
+const importReplaceConfirmation =
+  document.getElementById(
+    'importReplaceConfirmation'
+  );
+
+const closeImportChoiceModalBtn =
+  document.getElementById(
+    'closeImportChoiceModalBtn'
+  );
+
+const cancelImportChoiceBtn =
+  document.getElementById(
+    'cancelImportChoiceBtn'
+  );
+
+const confirmImportChoiceBtn =
+  document.getElementById(
+    'confirmImportChoiceBtn'
+  );
+
+const importResultMessage =
+  document.getElementById(
+    'importResultMessage'
+  );
+
 let pendingDeleteEntryId = null;
+let pendingImportData = null;
+let pendingImportReplaceConfirmed = false;
     const closeCompanyModalBtn = document.getElementById('closeCompanyModalBtn');
     const cancelCompanyModalBtn = document.getElementById('cancelCompanyModalBtn');
     const saveCompanyModalBtn = document.getElementById('saveCompanyModalBtn');
@@ -2491,6 +2692,14 @@ function saveEntries() {
                String(
                 entry.spendItRecordId || ""
               ).trim()
+      };
+    }
+
+    function sanitizeImportedEntry(entry) {
+      return {
+        ...sanitizeEntry(entry),
+        spendItAccountId: "",
+        spendItRecordId: ""
       };
     }
 
@@ -4477,7 +4686,11 @@ async function saveCompanyEdits() {
 
   const renamedEntries = entries
     .map(sanitizeEntry)
-    .filter(entry => entry.job === oldName);
+    .filter(
+      entry =>
+        entry.job === oldName &&
+        entry.spendItRecordId
+    );
 
   if (renamedEntries.length) {
     try {
@@ -4622,6 +4835,49 @@ confirmDeleteEntryBtn
     confirmDeleteEntry
   );
 
+closeImportChoiceModalBtn
+  ?.addEventListener(
+    'click',
+    closeImportChoiceModal
+  );
+
+cancelImportChoiceBtn
+  ?.addEventListener(
+    'click',
+    closeImportChoiceModal
+  );
+
+confirmImportChoiceBtn
+  ?.addEventListener(
+    'click',
+    applyImportChoice
+  );
+
+importAddRadio
+  ?.addEventListener(
+    'change',
+    updateImportChoiceModal
+  );
+
+importReplaceRadio
+  ?.addEventListener(
+    'change',
+    updateImportChoiceModal
+  );
+
+importChoiceModalBackdrop
+  ?.addEventListener(
+    'click',
+    event => {
+      if (
+        event.target ===
+        importChoiceModalBackdrop
+      ) {
+        closeImportChoiceModal();
+      }
+    }
+  );
+
 deleteEntryModalBackdrop
   ?.addEventListener(
     'click',
@@ -4652,6 +4908,14 @@ document.addEventListener(
         ?.classList.contains('open')
     ) {
       closeClearAllEntriesModal();
+    }
+
+    if (
+      event.key === 'Escape' &&
+      importChoiceModalBackdrop
+        ?.classList.contains('open')
+    ) {
+      closeImportChoiceModal();
     }
   }
 );
@@ -4977,42 +5241,359 @@ try {
     URL.revokeObjectURL(url);
   });
 
-    importFile.addEventListener('change', async (event) => {
-  const file = event.target.files?.[0];
-  if (!file) return;
+function buildImportedData(parsed) {
+  const isLegacyImport =
+    Array.isArray(parsed);
 
-  try {
-    const text = await file.text();
-    const parsed = JSON.parse(text);
+  const isStructuredImport =
+    parsed &&
+    Array.isArray(parsed.entries);
 
-    if (Array.isArray(parsed)) {
-      entries = parsed.map(sanitizeEntry).filter(item => item.job && item.date);
-    } else if (parsed && Array.isArray(parsed.entries)) {
-      entries = parsed.entries.map(sanitizeEntry).filter(item => item.job && item.date);
-      companySettings = parsed.companySettings && typeof parsed.companySettings === 'object' ? parsed.companySettings : {};
-      
-      if (parsed.uiState && typeof parsed.uiState === 'object') {
-        zoomMode = parsed.uiState.zoomMode || 'month';
-        graphMode = parsed.uiState.graphMode || 'entries';
-        graphStyle = parsed.uiState.graphStyle || 'line';
-        showValueLabels = parsed.uiState.showValueLabels ?? false;
-        activePage = parsed.uiState.activePage || 'homePage';
-        hiddenCompanies = new Set(Array.isArray(parsed.uiState.hiddenCompanies) ? parsed.uiState.hiddenCompanies : []);
+  if (
+    !isLegacyImport &&
+    !isStructuredImport
+  ) {
+    throw new Error(
+      'Invalid backup format'
+    );
+  }
+
+  const rawEntries =
+    isLegacyImport
+      ? parsed
+      : parsed.entries;
+
+  return {
+    entries: rawEntries
+      .map(sanitizeImportedEntry)
+      .filter(item => item.job && item.date),
+
+    companySettings:
+      isStructuredImport &&
+      parsed.companySettings &&
+      typeof parsed.companySettings === 'object'
+        ? parsed.companySettings
+        : {},
+
+    uiState:
+      isStructuredImport &&
+      parsed.uiState &&
+      typeof parsed.uiState === 'object'
+        ? parsed.uiState
+        : null,
+
+    isStructuredImport
+  };
+}
+
+function updateImportChoiceModal() {
+  const shouldReplace =
+    importReplaceRadio.checked;
+
+  if (!shouldReplace) {
+    pendingImportReplaceConfirmed = false;
+  }
+
+  importAddOption.classList.toggle(
+    'is-selected',
+    !shouldReplace
+  );
+
+  importReplaceOption.classList.toggle(
+    'is-selected',
+    shouldReplace
+  );
+
+  importReplaceConfirmation.classList.toggle(
+    'is-hidden',
+    !shouldReplace
+  );
+
+  confirmImportChoiceBtn.classList.toggle(
+    'primary',
+    !shouldReplace
+  );
+
+  confirmImportChoiceBtn.classList.toggle(
+    'ghost-danger',
+    shouldReplace
+  );
+
+  if (!shouldReplace) {
+    confirmImportChoiceBtn.textContent =
+      'Add entries';
+
+    return;
+  }
+
+  if (pendingImportReplaceConfirmed) {
+    importReplaceConfirmation.textContent =
+      'Final confirmation: replace your current EarnIt data with this backup?';
+
+    confirmImportChoiceBtn.textContent =
+      'Confirm replace current data';
+
+    return;
+  }
+
+  importReplaceConfirmation.textContent =
+    'This is destructive. Continue to review the final replacement confirmation.';
+
+  confirmImportChoiceBtn.textContent =
+    'Continue to replace';
+}
+
+function openImportChoiceModal(importedData) {
+  pendingImportData = importedData;
+  pendingImportReplaceConfirmed = false;
+
+  importResultMessage.hidden =
+    true;
+
+  importAddRadio.checked = true;
+
+  const entryCount =
+    importedData.entries.length;
+
+  importChoiceSummary.textContent =
+    `This backup contains ${entryCount} entr${
+      entryCount === 1
+        ? 'y'
+        : 'ies'
+    }.`;
+
+  updateImportChoiceModal();
+
+  importChoiceModalBackdrop.classList.add(
+    'open'
+  );
+
+  importChoiceModalBackdrop.setAttribute(
+    'aria-hidden',
+    'false'
+  );
+}
+
+function closeImportChoiceModal() {
+  pendingImportData = null;
+  pendingImportReplaceConfirmed = false;
+
+  importChoiceModalBackdrop.classList.remove(
+    'open'
+  );
+
+  importChoiceModalBackdrop.setAttribute(
+    'aria-hidden',
+    'true'
+  );
+
+  confirmImportChoiceBtn.disabled =
+    false;
+}
+
+function applyImportedUiState(uiState) {
+  if (!uiState) {
+    return;
+  }
+
+  zoomMode =
+    uiState.zoomMode ||
+    'month';
+
+  graphMode =
+    uiState.graphMode ||
+    'entries';
+
+  graphStyle =
+    uiState.graphStyle ||
+    'line';
+
+  showValueLabels =
+    uiState.showValueLabels ??
+    false;
+
+  activePage =
+    uiState.activePage ||
+    'homePage';
+
+  hiddenCompanies =
+    new Set(
+      Array.isArray(uiState.hiddenCompanies)
+        ? uiState.hiddenCompanies
+        : []
+    );
+}
+
+function addImportedCompanySettings(
+  importedCompanySettings
+) {
+  const currentCompanyNames =
+    new Set([
+      ...getSavedCompanies(),
+      ...Object.keys(companySettings)
+    ]);
+
+  Object.entries(
+    importedCompanySettings
+  ).forEach(
+    ([companyName, settings]) => {
+      if (
+        currentCompanyNames.has(
+          companyName
+        )
+      ) {
+        return;
       }
-    } else {
-      throw new Error('Invalid backup format');
+
+      companySettings[companyName] =
+        settings;
+
+      currentCompanyNames.add(
+        companyName
+      );
+    }
+  );
+}
+
+function showImportResult(message) {
+  importResultMessage.textContent =
+    message;
+
+  importResultMessage.hidden =
+    false;
+}
+
+function applyImportChoice() {
+  if (!pendingImportData) {
+    return;
+  }
+
+  const shouldReplace =
+    importReplaceRadio.checked;
+
+  if (
+    shouldReplace &&
+    !pendingImportReplaceConfirmed
+  ) {
+    pendingImportReplaceConfirmed = true;
+    updateImportChoiceModal();
+    return;
+  }
+
+  confirmImportChoiceBtn.disabled =
+    true;
+
+  let resultMessage = '';
+
+  if (shouldReplace) {
+    entries =
+      pendingImportData.entries;
+
+    if (
+      pendingImportData.isStructuredImport
+    ) {
+      companySettings =
+        pendingImportData.companySettings;
+
+      applyImportedUiState(
+        pendingImportData.uiState
+      );
     }
 
-    saveEntries();
-    saveCompanySettings();
-    saveUiState();
-    renderAll();
-  } catch (error) {
-    alert('Could not import that backup file. Please use a valid JSON export from this app.');
-  } finally {
-    importFile.value = '';
+    resultMessage =
+      `Replaced current EarnIt data with ${entries.length} entr${
+        entries.length === 1
+          ? 'y'
+          : 'ies'
+      }.`;
+  } else {
+    const existingEntryIds =
+      new Set(
+        entries.map(entry =>
+          String(
+            sanitizeEntry(entry).id
+          )
+        )
+      );
+
+    const entriesToAdd = [];
+    let skippedDuplicates = 0;
+
+    pendingImportData.entries.forEach(
+      entry => {
+        const entryId =
+          String(entry.id);
+
+        if (
+          existingEntryIds.has(entryId)
+        ) {
+          skippedDuplicates += 1;
+          return;
+        }
+
+        existingEntryIds.add(entryId);
+        entriesToAdd.push(entry);
+      }
+    );
+
+    entries = [
+      ...entries,
+      ...entriesToAdd
+    ];
+
+    addImportedCompanySettings(
+      pendingImportData.companySettings
+    );
+
+    resultMessage =
+      `Added ${entriesToAdd.length} entr${
+        entriesToAdd.length === 1
+          ? 'y'
+          : 'ies'
+      }. ${skippedDuplicates} duplicate${
+        skippedDuplicates === 1
+          ? ''
+          : 's'
+      } skipped.`;
   }
-});
+
+  saveEntries();
+  saveCompanySettings();
+  saveUiState();
+  closeImportChoiceModal();
+  renderAll();
+  showImportResult(resultMessage);
+}
+
+importFile.addEventListener(
+  'change',
+  async event => {
+    const file =
+      event.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    try {
+      const text =
+        await file.text();
+
+      const parsed =
+        JSON.parse(text);
+
+      openImportChoiceModal(
+        buildImportedData(parsed)
+      );
+    } catch (error) {
+      alert(
+        'Could not import that backup file. Please use a valid JSON export from this app.'
+      );
+    } finally {
+      importFile.value = '';
+    }
+  }
+);
 
     window.addEventListener('resize', renderAll);
 window.reloadEarnItFromStorage =
