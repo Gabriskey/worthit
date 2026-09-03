@@ -202,14 +202,17 @@ function getPayoffStats() {
   const payoffs = getCombinedPayoffs()
 
   const totalOriginal = payoffs.reduce((sum, p) => sum + Number(p.total || 0), 0)
-  const totalRemaining = totalOriginal
+  const totalPaid = payoffs.reduce((sum, p) => sum + Number(p.paid || 0), 0)
+  const totalRemaining = payoffs.reduce((sum, p) => {
+    return sum + Math.max(Number(p.total || 0) - Number(p.paid || 0), 0)
+  }, 0)
   const monthlyDue = payoffs.reduce((sum, p) => sum + Number(p.monthly || 0), 0)
   const entryCount = payoffs.reduce((sum, p) => sum + Number(p.entryCount || 1), 0)
 
   return {
     payoffs,
     totalOriginal,
-    totalPaid: 0,
+    totalPaid,
     totalRemaining,
     monthlyDue,
     activeCount: payoffs.length,
