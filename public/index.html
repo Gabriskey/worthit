@@ -257,7 +257,8 @@
 ></script>
 
   <script>
-  const SAVINGS_KEY = "savingsGoals"
+  const SPENDIT_ACCOUNT_KEY = "expensepath-accounts-v1"
+  const SPENDIT_RECORD_KEY = "expensepath-records-v1"
 
   function money(value) {
     return Number(value || 0).toLocaleString()
@@ -272,8 +273,41 @@
     }
   }
 
+  function getTotalSpendItBalance() {
+    const accounts = readArray(SPENDIT_ACCOUNT_KEY)
+    const records = readArray(SPENDIT_RECORD_KEY)
+
+    return accounts.reduce((total, account) => {
+      let balance = Number(account?.initial || 0)
+
+      records.forEach(record => {
+        const amount = Number(record.amount || 0)
+
+        if (
+          record.type === "income" &&
+          record.accountId === account.id
+        ) {
+          balance += amount
+        }
+
+        if (
+          record.type === "expense" &&
+          record.accountId === account.id
+        ) {
+          balance -= amount
+        }
+
+        if (record.type === "transfer") {
+          if (record.fromId === account.id) balance -= amount
+          if (record.toId === account.id) balance += amount
+        }
+      })
+
+      return total + balance
+    }, 0)
+  }
+
   function renderDashboard() {
-    const savings = readArray(SAVINGS_KEY)
     const wishlist = readArray(WISHLIST_KEY)
     const plannerData = loadData()
     const payoffStats = getPayoffStats()
@@ -281,8 +315,8 @@
     const currentMonth = months[new Date().getMonth()]
     const currentEntries = plannerData[currentMonth] || []
 
-    const totalSavings = savings.reduce((sum, goal) => sum + Number(goal.saved || 0), 0)
-    const netWorth = totalSavings - payoffStats.totalRemaining
+    const totalSpendItBalance = getTotalSpendItBalance()
+    const netWorth = totalSpendItBalance - payoffStats.totalRemaining
     const burn = currentEntries.reduce((sum, item) => sum + Number(item.amount || 0), 0) + payoffStats.monthlyDue
 
     document.getElementById("dashNetWorth").textContent = money(netWorth)
