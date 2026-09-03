@@ -944,13 +944,14 @@ html[data-theme="dark"] body::after {
   margin-top: 0.5rem;
 }
 
-/* Restore preview is intentionally read-only until a later phase. */
+/* Restore preview includes the conservative Phase 2B Add flow. */
 
 .worthit-restore-notice,
 .worthit-restore-info,
 .worthit-restore-section,
 .worthit-restore-mode,
-.worthit-restore-results {
+.worthit-restore-results,
+.worthit-restore-confirmation {
   margin: 0 0 1rem;
 }
 
@@ -970,7 +971,8 @@ html[data-theme="dark"] body::after {
 }
 
 .worthit-restore-info__meta,
-.worthit-restore-result {
+.worthit-restore-result,
+.worthit-restore-confirmation {
   padding: 0.85rem 1rem;
   border: 1px solid var(--border);
   border-radius: 12px;
@@ -985,7 +987,8 @@ html[data-theme="dark"] body::after {
 }
 
 .worthit-restore-info__meta strong,
-.worthit-restore-result strong {
+.worthit-restore-result strong,
+.worthit-restore-confirmation strong {
   color: var(--text);
 }
 
@@ -1034,6 +1037,14 @@ html[data-theme="dark"] body::after {
   color: var(--text-secondary);
 }
 
+.worthit-restore-confirmation {
+  color: var(--text-secondary);
+}
+
+.worthit-restore-confirmation p {
+  margin: 0.5rem 0;
+}
+
 .worthit-restore-result__line {
   color: var(--text-secondary);
   font-size: 0.9rem;
@@ -1046,6 +1057,12 @@ html[data-theme="dark"] body::after {
 
 .worthit-restore-section .worthit-backup-option.is-disabled {
   opacity: 0.58;
+}
+
+#addWorthItRestore:disabled {
+  cursor: not-allowed;
+  filter: grayscale(1);
+  opacity: 0.55;
 }
 
 @media (max-width: 600px) {

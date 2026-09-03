@@ -1,7 +1,10 @@
 /* Centralized WorthIt backup export and read-only restore preview. */
 
 import { watchAuthState } from "./auth.js"
-import { loadUserAppState } from "./database.js"
+import {
+  loadUserAppState,
+  runUserStorageRestoreTransaction
+} from "./database.js"
 
 const BACKUP_AREAS = Object.freeze({
   earnit: [
@@ -651,7 +654,11 @@ function availableStableRecords(collections, selectedAreas, mode, area, storageK
   if (mode === "replace") return incoming
 
   const comparison = comparisonForArea(collections, area, storageKey)
-  return [...comparison.newRecords, ...comparison.duplicates]
+  // Add keeps every current record and appends only genuinely new IDs.
+  return [
+    ...arrayValue(collections.current, area, storageKey),
+    ...comparison.newRecords
+  ]
 }
 
 function availablePlannerEntries(collections, selectedAreas, mode) {
@@ -663,9 +670,8 @@ function availablePlannerEntries(collections, selectedAreas, mode) {
     return plannerEntries(collections.backup.data, "planit")
   }
 
-  // Generic Planner rows are a visible Add blocker, so they cannot prove links.
-  return plannerEntries(collections.backup.data, "planit")
-    .filter(entry => stableId(entry.id))
+  // Phase 2B does not add Planner rows, so only current rows can prove links.
+  return plannerEntries(collections.current, "planit")
 }
 
 function createRelationshipBlockers(collections, selectedAreas, mode) {
@@ -904,6 +910,252 @@ function addComparisonLines(details, label, comparison) {
   }
 }
 
+const ADD_STABLE_COLLECTIONS = Object.freeze([
+  {
+    area: "earnit",
+    appName: "earnit",
+    storageKey: "salary-growth-tracker-v1",
+    label: "EarnIt entries"
+  },
+  {
+    area: "spendit",
+    appName: "spendit",
+    storageKey: "expensepath-accounts-v1",
+    label: "SpendIt accounts"
+  },
+  {
+    area: "spendit",
+    appName: "spendit",
+    storageKey: "expensepath-records-v1",
+    label: "SpendIt records"
+  },
+  {
+    area: "planit",
+    appName: "planit",
+    storageKey: "worthitPayoffs",
+    label: "PlanIt payoffs"
+  },
+  {
+    area: "planit",
+    appName: "planit",
+    storageKey: "worthitPurchasedItems",
+    label: "PlanIt purchased items"
+  },
+  {
+    area: "wishlist",
+    appName: "planit",
+    storageKey: "wishlistItems",
+    label: "Wishlist items"
+  },
+  {
+    area: "wishlist",
+    appName: "planit",
+    storageKey: "wishlistCollections",
+    label: "Wishlist collections"
+  },
+  {
+    area: "saveit",
+    appName: "saveit",
+    storageKey: "savingsGoals",
+    label: "SaveIt goals"
+  }
+])
+
+function addBlockingIssue(blockers, message) {
+  if (!blockers.includes(message)) blockers.push(message)
+}
+
+function addStorageUpdate(storageUpdates, appName, storageKey, value) {
+  if (!hasOwn(storageUpdates, appName)) {
+    storageUpdates[appName] = {}
+  }
+
+  storageUpdates[appName][storageKey] = JSON.stringify(value)
+}
+
+function buildAddRestorePlan(backup, current, selectedAreas) {
+  const collections = { backup, current }
+  const blockers = []
+  const storageUpdates = {}
+  const added = {
+    earnit: { entries: 0, companies: 0 },
+    spendit: { accounts: 0, records: 0 },
+    planit: { payoffs: 0, purchasedItems: 0 },
+    wishlist: { items: 0, collections: 0 },
+    saveit: { goals: 0 }
+  }
+
+  if (!selectedAreas.length) {
+    addBlockingIssue(blockers, "Choose at least one available section to add.")
+  }
+
+  if (selectedAreas.includes("preferences")) {
+    addBlockingIssue(blockers, "Preferences cannot be added in this restore mode.")
+  }
+
+  if (
+    selectedAreas.includes("planit") &&
+    countIdlessPlannerEntries(backup.data, "planit")
+  ) {
+    addBlockingIssue(
+      blockers,
+      "PlanIt contains Planner rows without stable IDs, so PlanIt cannot be safely added."
+    )
+  }
+
+  if (selectedAreas.includes("planit")) {
+    const plannerComparison = compareStableCollection(
+      plannerEntries(backup.data, "planit").filter(entry => stableId(entry.id)),
+      plannerEntries(current, "planit").filter(entry => stableId(entry.id))
+    )
+
+    if (plannerComparison.conflicts.length) {
+      addBlockingIssue(
+        blockers,
+        "PlanIt Planner entries have same-ID records with different contents."
+      )
+    }
+
+    if (plannerComparison.currentDuplicateIds.size) {
+      addBlockingIssue(
+        blockers,
+        "PlanIt Planner entries have duplicate IDs in current cloud data and cannot be safely compared."
+      )
+    }
+  }
+
+  ADD_STABLE_COLLECTIONS.forEach(item => {
+    if (!selectedAreas.includes(item.area)) return
+
+    const comparison = comparisonForArea(collections, item.area, item.storageKey)
+
+    if (comparison.conflicts.length) {
+      addBlockingIssue(
+        blockers,
+        `${item.label} has same-ID records with different contents.`
+      )
+    }
+
+    if (comparison.currentDuplicateIds.size) {
+      addBlockingIssue(
+        blockers,
+        `${item.label} has duplicate IDs in current cloud data and cannot be safely merged.`
+      )
+    }
+
+    if (!comparison.newRecords.length) return
+
+    const merged = [
+      ...arrayValue(current, item.area, item.storageKey),
+      ...comparison.newRecords
+    ]
+    addStorageUpdate(storageUpdates, item.appName, item.storageKey, merged)
+
+    if (item.storageKey === "salary-growth-tracker-v1") {
+      added.earnit.entries = comparison.newRecords.length
+    } else if (item.storageKey === "expensepath-accounts-v1") {
+      added.spendit.accounts = comparison.newRecords.length
+    } else if (item.storageKey === "expensepath-records-v1") {
+      added.spendit.records = comparison.newRecords.length
+    } else if (item.storageKey === "worthitPayoffs") {
+      added.planit.payoffs = comparison.newRecords.length
+    } else if (item.storageKey === "worthitPurchasedItems") {
+      added.planit.purchasedItems = comparison.newRecords.length
+    } else if (item.storageKey === "wishlistItems") {
+      added.wishlist.items = comparison.newRecords.length
+    } else if (item.storageKey === "wishlistCollections") {
+      added.wishlist.collections = comparison.newRecords.length
+    } else if (item.storageKey === "savingsGoals") {
+      added.saveit.goals = comparison.newRecords.length
+    }
+  })
+
+  if (selectedAreas.includes("earnit")) {
+    const incoming = objectValue(
+      backup.data, "earnit", "salary-growth-tracker-companies-v1"
+    )
+    const currentCompanies = objectValue(
+      current, "earnit", "salary-growth-tracker-companies-v1"
+    )
+    const newCompanies = Object.fromEntries(
+      Object.entries(incoming).filter(([company]) => !hasOwn(currentCompanies, company))
+    )
+
+    if (Object.keys(newCompanies).length) {
+      addStorageUpdate(
+        storageUpdates,
+        "earnit",
+        "salary-growth-tracker-companies-v1",
+        { ...currentCompanies, ...newCompanies }
+      )
+      added.earnit.companies = Object.keys(newCompanies).length
+    }
+  }
+
+  createRelationshipBlockers(collections, selectedAreas, "add")
+    .forEach(message => addBlockingIssue(blockers, message))
+
+  const addedCount = Object.values(added).reduce((total, section) => {
+    return total + Object.values(section).reduce((sum, count) => sum + count, 0)
+  }, 0)
+
+  return { blockers, storageUpdates, added, addedCount }
+}
+
+function addSummaryLines(parent, added, selectedAreas = null) {
+  if (
+    added.earnit.entries || added.earnit.companies ||
+    selectedAreas?.includes("earnit")
+  ) {
+    addResultLine(
+      parent,
+      "+",
+      `EarnIt: ${added.earnit.entries} entries, ${added.earnit.companies} companies`,
+      "new"
+    )
+  }
+
+  if (
+    added.spendit.accounts || added.spendit.records ||
+    selectedAreas?.includes("spendit")
+  ) {
+    addResultLine(
+      parent,
+      "+",
+      `SpendIt: ${added.spendit.accounts} accounts, ${added.spendit.records} records`,
+      "new"
+    )
+  }
+
+  if (
+    added.planit.payoffs || added.planit.purchasedItems ||
+    selectedAreas?.includes("planit")
+  ) {
+    addResultLine(
+      parent,
+      "+",
+      `PlanIt: ${added.planit.payoffs} payoffs, ${added.planit.purchasedItems} purchased items`,
+      "new"
+    )
+  }
+
+  if (
+    added.wishlist.items || added.wishlist.collections ||
+    selectedAreas?.includes("wishlist")
+  ) {
+    addResultLine(
+      parent,
+      "+",
+      `Wishlist: ${added.wishlist.items} items, ${added.wishlist.collections} collections`,
+      "new"
+    )
+  }
+
+  if (added.saveit.goals || selectedAreas?.includes("saveit")) {
+    addResultLine(parent, "+", `SaveIt: ${added.saveit.goals} goals`, "new")
+  }
+}
+
 function renderRestoreInformation(container, backup) {
   const meta = document.createElement("div")
   const date = new Date(backup.exportedAt)
@@ -935,6 +1187,12 @@ function initializeWorthItBackup() {
   const restoreInfo = document.getElementById("worthitRestoreInfo")
   const restoreChoices = document.getElementById("worthitRestoreChoices")
   const restoreResults = document.getElementById("worthitRestorePreviewResults")
+  const restoreStatus = document.getElementById("worthitRestoreStatus")
+  const addRestoreButton = document.getElementById("addWorthItRestore")
+  const addConfirmation = document.getElementById("worthitAddRestoreConfirmation")
+  const addRestoreSummary = document.getElementById("worthitAddRestoreSummary")
+  const cancelAddRestoreButton = document.getElementById("cancelWorthItAddRestore")
+  const confirmAddRestoreButton = document.getElementById("confirmWorthItAddRestore")
   const backButton = document.getElementById("backToWorthItBackup")
   const restoreCancelButton = document.getElementById("cancelWorthItRestore")
   const status = document.getElementById("worthitBackupStatus")
@@ -943,7 +1201,10 @@ function initializeWorthItBackup() {
     !modal || !openButton || !closeButton || !exportView || !restoreView ||
     !title || !eyebrow || !cancelButton || !selectAllButton || !exportButton ||
     !restoreButton || !restoreFile || !restoreInfo || !restoreChoices ||
-    !restoreResults || !backButton || !restoreCancelButton || !status
+    !restoreResults || !restoreStatus || !addRestoreButton || !addConfirmation ||
+    !addRestoreSummary ||
+    !cancelAddRestoreButton || !confirmAddRestoreButton || !backButton ||
+    !restoreCancelButton || !status
   ) {
     return
   }
@@ -958,15 +1219,19 @@ function initializeWorthItBackup() {
   let restoreCollections = null
   let restoreBackup = null
   let restoreUserId = ""
+  let latestAddPlan = null
 
   function setStatus(message = "", isError = false) {
     status.textContent = message
     status.classList.toggle("is-error", isError)
+    restoreStatus.textContent = message
+    restoreStatus.classList.toggle("is-error", isError)
   }
 
   function showExportView() {
     exportView.hidden = false
     restoreView.hidden = true
+    addConfirmation.hidden = true
     eyebrow.textContent = "BACK UP WORTHIT"
     title.textContent = "Choose what to include"
     closeButton.setAttribute("aria-label", "Close backup options")
@@ -978,6 +1243,18 @@ function initializeWorthItBackup() {
     eyebrow.textContent = "RESTORE BACKUP"
     title.textContent = "Review restore preview"
     closeButton.setAttribute("aria-label", "Close restore preview")
+  }
+
+  function updateAddRestoreAction(mode, plan = null) {
+    latestAddPlan = mode === "add" ? plan : null
+    addConfirmation.hidden = true
+    addRestoreButton.hidden = mode !== "add"
+    addRestoreButton.disabled = !plan || Boolean(plan.blockers.length)
+    addRestoreButton.title = !plan || plan.blockers.length
+      ? "Resolve the Add blockers before restoring."
+      : plan.addedCount
+        ? "Review the Add confirmation."
+        : "Show the no-op restore result."
   }
 
   function openModal() {
@@ -1094,11 +1371,15 @@ function initializeWorthItBackup() {
         "The signed-in account changed. Choose the backup file again.",
         "blocking"
       )
+      updateAddRestoreAction("replace")
       return
     }
 
     const mode = restoreModes.find(input => input.checked)?.value || "add"
     const selectedAreas = selectedAreasFromChoices(restoreChoices)
+    const addPlan = mode === "add"
+      ? buildAddRestorePlan(restoreBackup, restoreCollections.current, selectedAreas)
+      : null
 
     restoreResults.replaceChildren()
     const summary = addResultCard(restoreResults, "Restore preview")
@@ -1106,6 +1387,7 @@ function initializeWorthItBackup() {
 
     if (!selectedAreas.length) {
       addResultLine(summary, "!", "Choose at least one available section to preview.", "warning")
+      updateAddRestoreAction(mode, addPlan)
       return
     }
 
@@ -1164,12 +1446,21 @@ function initializeWorthItBackup() {
 
         if (area === "planit") {
           const idless = countIdlessPlannerEntries(restoreBackup.data, area)
+          const plannerCount = countPlannerEntries(restoreBackup.data, area)
           addResultLine(
             details,
             "✓",
             `Planner entries: ${countPlannerEntries(restoreBackup.data, area)}`,
             "valid"
           )
+          if (plannerCount) {
+            addResultLine(
+              details,
+              "!",
+              "Planner entries are preview-only and will not be added in Phase 2B.",
+              "warning"
+            )
+          }
           if (idless) {
             addResultLine(
               details,
@@ -1205,14 +1496,15 @@ function initializeWorthItBackup() {
       })
     }
 
-    const blockers = createRelationshipBlockers(
-      restoreCollections,
-      selectedAreas,
-      mode
-    )
+    const blockers = mode === "add"
+      ? addPlan.blockers
+      : createRelationshipBlockers(restoreCollections, selectedAreas, mode)
 
     if (blockers.length) {
-      const details = addResultCard(restoreResults, "Blocking relationship conflicts")
+      const details = addResultCard(
+        restoreResults,
+        mode === "add" ? "Add blockers" : "Blocking relationship conflicts"
+      )
       blockers.forEach(message => addResultLine(details, "×", message, "blocking"))
     } else {
       const details = addResultCard(restoreResults, "Relationships")
@@ -1222,6 +1514,142 @@ function initializeWorthItBackup() {
         "Selected active relationships can be resolved by stable IDs.",
         "valid"
       )
+
+      if (mode === "add") {
+        if (addPlan.addedCount) {
+          const details = addResultCard(restoreResults, "Ready to add")
+          addSummaryLines(details, addPlan.added)
+        } else {
+          addResultLine(summary, "=", "Nothing new to add.", "valid")
+        }
+      }
+    }
+
+    updateAddRestoreAction(mode, addPlan)
+  }
+
+  function showAddConfirmation() {
+    if (!latestAddPlan) {
+      setStatus("Add preview is unavailable. Choose the backup file again.", true)
+      return
+    }
+
+    if (latestAddPlan.blockers.length) {
+      setStatus("Resolve the Add blockers before restoring.", true)
+      return
+    }
+
+    if (!latestAddPlan.addedCount) {
+      setStatus("Nothing new to add.")
+      return
+    }
+
+    addRestoreSummary.replaceChildren()
+    addSummaryLines(
+      addRestoreSummary,
+      latestAddPlan.added,
+      selectedAreasFromChoices(restoreChoices)
+    )
+    addConfirmation.hidden = false
+    confirmAddRestoreButton.focus()
+  }
+
+  function updateRestoredLocalStorage(storageUpdates) {
+    Object.values(storageUpdates).forEach(storage => {
+      Object.entries(storage).forEach(([storageKey, value]) => {
+        localStorage.setItem(storageKey, value)
+      })
+    })
+  }
+
+  async function addBackupToCurrentAccount() {
+    const mode = restoreModes.find(input => input.checked)?.value || "add"
+    const selectedAreas = selectedAreasFromChoices(restoreChoices)
+
+    if (mode !== "add" || !restoreBackup || !currentUser || currentUser.uid !== restoreUserId) {
+      setStatus("The signed-in account changed. Choose the backup file again.", true)
+      return
+    }
+
+    if (!latestAddPlan || latestAddPlan.blockers.length) {
+      setStatus("Resolve the Add blockers before restoring.", true)
+      return
+    }
+
+    if (!latestAddPlan.addedCount) {
+      setStatus("Nothing new to add.")
+      return
+    }
+
+    const userId = restoreUserId
+    const selectedAreaSet = new Set(selectedAreas)
+
+    addRestoreButton.disabled = true
+    confirmAddRestoreButton.disabled = true
+    cancelAddRestoreButton.disabled = true
+    setStatus("Adding new data to your signed-in account...")
+
+    try {
+      const result = await runUserStorageRestoreTransaction(
+        userId,
+        ["earnit", "spendit", "planit", "saveit"],
+        freshCloudStates => {
+          if (!currentUser || currentUser.uid !== userId) {
+            throw new Error("Your signed-in account changed before the restore could be applied.")
+          }
+
+          const freshCurrent = buildCurrentData(freshCloudStates)
+          const freshPlan = buildAddRestorePlan(
+            restoreBackup,
+            freshCurrent,
+            [...selectedAreaSet]
+          )
+
+          if (freshPlan.blockers.length) {
+            throw new Error(`Restore stopped: ${freshPlan.blockers[0]}`)
+          }
+
+          return {
+            storageUpdates: freshPlan.storageUpdates,
+            addPlan: freshPlan
+          }
+        }
+      )
+
+      if (!result.addPlan.addedCount) {
+        addConfirmation.hidden = true
+        setStatus("Nothing new to add.")
+        renderRestorePreview()
+        return
+      }
+
+      if (!currentUser || currentUser.uid !== userId) {
+        throw new Error(
+          "The cloud restore succeeded, but this browser changed accounts before its local cache could update."
+        )
+      }
+
+      try {
+        updateRestoredLocalStorage(result.storageUpdates)
+      } catch (error) {
+        console.error("WorthIt backup local cache update failed:", error)
+        throw new Error(
+          "Your cloud data was restored, but this browser could not refresh its local cache. Reload Home before continuing."
+        )
+      }
+
+      setStatus("Added new backup data. Reloading Home...")
+      window.setTimeout(() => window.location.reload(), 500)
+    } catch (error) {
+      console.error("WorthIt backup Add restore failed:", error)
+      addConfirmation.hidden = true
+      setStatus(error.message || "Could not add this backup to your cloud data.", true)
+      renderRestoreChoices(selectedAreaSet)
+      renderRestorePreview()
+    } finally {
+      addRestoreButton.disabled = false
+      confirmAddRestoreButton.disabled = false
+      cancelAddRestoreButton.disabled = false
     }
   }
 
@@ -1311,6 +1739,12 @@ function initializeWorthItBackup() {
   exportButton.addEventListener("click", exportBackup)
   restoreButton.addEventListener("click", openRestoreFilePicker)
   restoreFile.addEventListener("change", previewSelectedRestoreFile)
+  addRestoreButton.addEventListener("click", showAddConfirmation)
+  cancelAddRestoreButton.addEventListener("click", () => {
+    addConfirmation.hidden = true
+    addRestoreButton.focus()
+  })
+  confirmAddRestoreButton.addEventListener("click", addBackupToCurrentAccount)
   restoreModes.forEach(input => {
     input.addEventListener("change", () => {
       renderRestoreChoices(new Set(

@@ -376,7 +376,7 @@
           <legend>Preview mode</legend>
           <label>
             <input type="radio" name="worthitRestoreMode" value="add" checked>
-            <span><strong>Add to current data</strong><small>Preview only. Existing records would not be overwritten.</small></span>
+            <span><strong>Add to current data</strong><small>Existing records will not be overwritten.</small></span>
           </label>
           <label>
             <input type="radio" name="worthitRestoreMode" value="replace">
@@ -386,12 +386,32 @@
 
         <div id="worthitRestorePreviewResults" class="worthit-restore-results" aria-live="polite"></div>
 
+        <p id="worthitRestoreStatus" class="worthit-backup-modal__status" role="status"></p>
+
+        <section id="worthitAddRestoreConfirmation" class="worthit-restore-confirmation" hidden>
+          <strong>Add this backup data to the currently signed-in WorthIt account?</strong>
+          <p>Existing records will not be overwritten.</p>
+          <div id="worthitAddRestoreSummary" class="worthit-restore-result__details"></div>
+          <p>Close other WorthIt tabs before restoring.</p>
+          <div class="worthit-backup-modal__actions-right">
+            <button id="cancelWorthItAddRestore" class="btn btn-secondary" type="button">
+              Cancel
+            </button>
+            <button id="confirmWorthItAddRestore" class="btn btn-primary" type="button">
+              Confirm Add
+            </button>
+          </div>
+        </section>
+
         <div class="worthit-backup-modal__actions">
           <button id="backToWorthItBackup" class="btn btn-secondary" type="button">
             Back
           </button>
           <button id="cancelWorthItRestore" class="btn btn-secondary" type="button">
             Cancel
+          </button>
+          <button id="addWorthItRestore" class="btn btn-primary" type="button" hidden>
+            Add to WorthIt
           </button>
         </div>
       </div>
