@@ -1059,8 +1059,12 @@ function updatePayoffField(id, key, value) {
 
 function deletePayoff(id) {
   const payoffs = loadPayoffs()
-  const item = payoffs.find(p => p.id === id)
-  savePayoffs(payoffs.filter(p => p.id !== id))
+  const index = payoffs.findIndex(p => String(p.id) === String(id))
+
+  if (index < 0) return
+
+  const [item] = payoffs.splice(index, 1)
+  savePayoffs(payoffs)
   renderPayoffTracker()
   showToast(`${item?.name || "Payoff"} deleted`)
 }
@@ -1114,6 +1118,17 @@ list.innerHTML = stats.payoffs.map(item => {
   ? Math.ceil(remaining / monthly)
   : 0
   const category = item.category || "Installment"
+  const deleteControl = item.source === "planner"
+    ? ""
+    : `
+      <button
+        class="btn btn-secondary payoff-delete-button"
+        type="button"
+        data-payoff-id="${encodeURIComponent(item.id)}"
+      >
+        Delete
+      </button>
+    `
 
   return `
     <div class="payoff-row-compact">
@@ -1141,9 +1156,17 @@ list.innerHTML = stats.payoffs.map(item => {
         <span>Months left</span>
         <strong>${monthsLeft} mo</strong>
       </div>
+
+      ${deleteControl}
     </div>
   `
 }).join("")
+
+list.querySelectorAll("[data-payoff-id]").forEach(button => {
+  button.addEventListener("click", () => {
+    deletePayoff(decodeURIComponent(button.dataset.payoffId || ""))
+  })
+})
 }
 
 function getDaySuffix(day) {

@@ -2186,7 +2186,7 @@ th.actions {
 
 .payoff-row-compact {
   display: grid;
-  grid-template-columns: minmax(220px, 1.6fr) repeat(4, minmax(120px, auto));
+  grid-template-columns: minmax(220px, 1.6fr) repeat(4, minmax(120px, auto)) auto;
   align-items: center;
   gap: 0.8rem;
   background: var(--surface);
@@ -2248,6 +2248,11 @@ th.actions {
 
 .payoff-row-stat.payoff-accent strong {
   color: var(--accent);
+}
+
+.payoff-delete-button {
+  border-color: var(--danger);
+  color: var(--danger);
 }
 
 /* ========================================
