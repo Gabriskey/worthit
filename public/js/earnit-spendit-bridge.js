@@ -313,6 +313,118 @@ async function syncEarnItEntryToSpendIt(
   return spendItRecord;
 }
 
+async function renameEarnItCompanyInSpendIt(
+  earnItEntries,
+  companyName
+) {
+  if (!currentUser) {
+    throw new Error(
+      "No signed-in user."
+    );
+  }
+
+  const safeEntries =
+    Array.isArray(earnItEntries)
+      ? earnItEntries.filter(
+          entry => entry?.id
+        )
+      : [];
+
+  if (!safeEntries.length) {
+    return 0;
+  }
+
+  const entryIds =
+    new Set(
+      safeEntries.map(
+        entry => String(entry.id)
+      )
+    );
+
+  const recordIds =
+    new Set(
+      safeEntries.map(
+        entry => String(
+          entry.spendItRecordId ||
+          `earnit_${entry.id}`
+        )
+      )
+    );
+
+  const rawRecords =
+    await loadUserStorageKey(
+      currentUser.uid,
+      SPENDIT_APP,
+      SPENDIT_RECORD_KEY
+    );
+
+  const records =
+    parseStorageArray(
+      rawRecords
+    );
+
+  let updatedCount = 0;
+
+  const nextRecords =
+    records.map(record => {
+      /*
+        Only EarnIt-created records can be
+        changed by a company rename.
+      */
+      if (
+        record?.source !== "earnit"
+      ) {
+        return record;
+      }
+
+      const matchesRecordId =
+        recordIds.has(
+          String(record.id || "")
+        );
+
+      const matchesEntryId =
+        entryIds.has(
+          String(
+            record.earnItEntryId ||
+            ""
+          )
+        );
+
+      if (
+        !matchesRecordId &&
+        !matchesEntryId
+      ) {
+        return record;
+      }
+
+      if (
+        record.description === companyName
+      ) {
+        return record;
+      }
+
+      updatedCount += 1;
+
+      return {
+        ...record,
+        description: companyName
+      };
+    });
+
+  if (!updatedCount) {
+    return 0;
+  }
+
+  await saveUserStorageKey(
+    currentUser.uid,
+    SPENDIT_APP,
+    SPENDIT_RECORD_KEY,
+    JSON.stringify(nextRecords)
+  );
+
+  return updatedCount;
+}
+
 async function deleteEarnItEntryFromSpendIt(
   entry
 ) {
@@ -531,6 +643,9 @@ window.getSpendItAccountsForEarnIt =
 
   window.syncEarnItEntryToSpendIt =
   syncEarnItEntryToSpendIt;
+
+  window.renameEarnItCompanyInSpendIt =
+  renameEarnItCompanyInSpendIt;
 
   window.deleteEarnItEntryFromSpendIt =
   deleteEarnItEntryFromSpendIt;

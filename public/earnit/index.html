@@ -4467,13 +4467,48 @@ function closeCompanyModal() {
   companyEditNotesInput.value = '';
 }
 
-function saveCompanyEdits() {
+async function saveCompanyEdits() {
   const oldName = companyOriginalNameInput.value.trim();
   const newName = companyEditNameInput.value.trim();
   const newColor = companyEditColorInput.value;
   const newNotes = companyEditNotesInput.value.trim();
 
   if (!oldName || !newName) return;
+
+  const renamedEntries = entries
+    .map(sanitizeEntry)
+    .filter(entry => entry.job === oldName);
+
+  if (renamedEntries.length) {
+    try {
+      if (
+        typeof window
+          .renameEarnItCompanyInSpendIt !==
+        "function"
+      ) {
+        throw new Error(
+          "EarnIt → SpendIt bridge is unavailable."
+        );
+      }
+
+      await window
+        .renameEarnItCompanyInSpendIt(
+          renamedEntries,
+          newName
+        );
+    } catch (error) {
+      console.error(
+        "Could not rename linked SpendIt incomes:",
+        error
+      );
+
+      alert(
+        "The linked SpendIt incomes could not be updated, so the company was not renamed."
+      );
+
+      return;
+    }
+  }
 
   entries = entries.map(entry => {
     const clean = sanitizeEntry(entry);
