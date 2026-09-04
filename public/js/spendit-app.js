@@ -463,6 +463,23 @@ function deleteAccount(id){
   const account = accounts.find(a => a.id === id);
   if (!account) return;
 
+  const dependentRecords = records.filter(record =>
+    record.accountId === id ||
+    record.fromId === id ||
+    record.toId === id
+  );
+
+  if (dependentRecords.length) {
+    const recordLabel =
+      dependentRecords.length === 1
+        ? 'record'
+        : 'records';
+
+    return alert(
+      `Cannot delete ${account.name}: ${dependentRecords.length} ${recordLabel} still use this account. Reassign or delete those records first.`
+    );
+  }
+
   openDeleteModal(
     `Delete ${account.name}?`,
     'Records linked to this account will stay, but balances may change.',
