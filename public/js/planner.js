@@ -632,7 +632,7 @@ function renderPlannerPurchasedItems() {
     <div class="purchased-wishlist-item">
       <div>
         <strong>${item.name || "Purchased Item"}</strong>
-        <span>₱${Number(item.price || 0).toLocaleString()}</span>
+        <span>${formatCurrency(item.price)}</span>
       </div>
 
       <button class="wishlist-owned-btn" type="button" onclick="removePurchasedItemFromPlanner('${item.id}')">
@@ -1100,8 +1100,8 @@ function renderPayoffTracker() {
 
   document.getElementById("payoffActiveCount").textContent = stats.activeCount
   document.getElementById("payoffTotalOriginal").textContent = stats.entryCount.toLocaleString()
-  document.getElementById("payoffTotalRemaining").textContent = stats.totalRemaining.toLocaleString()
-  document.getElementById("payoffMonthlyDue").textContent = stats.monthlyDue.toLocaleString()
+  document.getElementById("payoffTotalRemaining").textContent = formatCurrency(stats.totalRemaining)
+  document.getElementById("payoffMonthlyDue").textContent = formatCurrency(stats.monthlyDue)
 
   if (!stats.payoffs.length) {
     list.innerHTML = `<div class="wishlist-table-empty">No payoff items yet.</div>`
@@ -1139,12 +1139,12 @@ list.innerHTML = stats.payoffs.map(item => {
 
       <div class="payoff-row-stat payoff-danger">
         <span>Remaining</span>
-        <strong>₱${remaining.toLocaleString()}</strong>
+        <strong>${formatCurrency(remaining)}</strong>
       </div>
 
       <div class="payoff-row-stat payoff-accent">
         <span>Monthly</span>
-        <strong>₱${monthly.toLocaleString()}</strong>
+        <strong>${formatCurrency(monthly)}</strong>
       </div>
 
       <div class="payoff-row-stat">

@@ -100,7 +100,7 @@ function getCurrentMonthPlannerTotal() {
 
 function setMoney(id, value) {
   const el = document.getElementById(id)
-  if (el) el.textContent = Number(value || 0).toLocaleString()
+  if (el) el.textContent = formatCurrency(value)
 }
 
 function renderNetWorthList(id, items, emptyText) {
@@ -153,7 +153,7 @@ const totalSpendItBalance = spendItAccounts.reduce(
       <div class="networth-row">
         <strong>${account.name || "SpendIt Account"}</strong>
         <span class="${balanceClass}">
-          ₱${balance.toLocaleString()}
+          ${formatCurrency(balance)}
         </span>
       </div>
     `
@@ -181,7 +181,7 @@ renderNetWorthList(
         </div>
 
         <span class="networth-assets">
-          ₱${Number(goal.saved || 0).toLocaleString()}
+          ${formatCurrency(goal.saved)}
         </span>
       </div>
     `
@@ -197,7 +197,7 @@ renderNetWorthList(
       return `
         <div class="networth-row">
           <strong>${item.name || "Payoff Item"}</strong>
-          <span class="networth-liabilities">₱${remaining.toLocaleString()}</span>
+          <span class="networth-liabilities">${formatCurrency(remaining)}</span>
         </div>
       `
     }),
@@ -209,7 +209,7 @@ renderNetWorthList(
     wishlist.map(item => `
       <div class="networth-row">
         <strong>${item.name || "Wishlist Item"}</strong>
-        <span>₱${Number(item.price || 0).toLocaleString()}</span>
+        <span>${formatCurrency(item.price)}</span>
       </div>
     `),
     "No wishlist items yet."
@@ -221,19 +221,19 @@ renderNetWorthList(
       `
         <div class="networth-row">
           <strong>Planner Expenses</strong>
-          <span>₱${plannerBurn.toLocaleString()}</span>
+          <span>${formatCurrency(plannerBurn)}</span>
         </div>
       `,
       `
         <div class="networth-row">
           <strong>Payoff Monthly Payments</strong>
-          <span>₱${payoffStats.monthlyDue.toLocaleString()}</span>
+          <span>${formatCurrency(payoffStats.monthlyDue)}</span>
         </div>
       `,
       `
         <div class="networth-row">
           <strong>Total Monthly Burn</strong>
-          <span>₱${monthlyBurn.toLocaleString()}</span>
+          <span>${formatCurrency(monthlyBurn)}</span>
         </div>
       `
     ],

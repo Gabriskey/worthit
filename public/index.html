@@ -226,12 +226,12 @@
   <section class="summary-grid" style="padding:0; margin-bottom:2rem;">
     <a href="networth.html" class="summary-card total" style="text-decoration:none;">
       <span class="label">NET WORTH</span>
-      <div class="value">₱<span id="dashNetWorth">0</span></div>
+      <div class="value"><span id="dashNetWorth">₱0</span></div>
     </a>
 
     <a href="planner.html" class="summary-card low" style="text-decoration:none;">
       <span class="label">THIS MONTH’S BURN</span>
-      <div class="value">₱<span id="dashBurn">0</span></div>
+      <div class="value"><span id="dashBurn">₱0</span></div>
     </a>
 
     <a href="planner.html" class="summary-card med" style="text-decoration:none;">
@@ -457,10 +457,6 @@
   const SPENDIT_ACCOUNT_KEY = "expensepath-accounts-v1"
   const SPENDIT_RECORD_KEY = "expensepath-records-v1"
 
-  function money(value) {
-    return Number(value || 0).toLocaleString()
-  }
-
   function readArray(key) {
     try {
       const raw = JSON.parse(localStorage.getItem(key) || "[]")
@@ -516,15 +512,15 @@
     const netWorth = totalSpendItBalance - payoffStats.totalRemaining
     const burn = currentEntries.reduce((sum, item) => sum + Number(item.amount || 0), 0) + payoffStats.monthlyDue
 
-    document.getElementById("dashNetWorth").textContent = money(netWorth)
-    document.getElementById("dashBurn").textContent = money(burn)
+    document.getElementById("dashNetWorth").textContent = formatCurrency(netWorth)
+    document.getElementById("dashBurn").textContent = formatCurrency(burn)
 
     const upcoming = currentEntries
       .filter(item => item.date)
       .sort((a, b) => new Date(a.date) - new Date(b.date))[0]
 
     document.getElementById("dashUpcoming").textContent = upcoming
-      ? `${upcoming.label || "Payment"} · ₱${money(upcoming.amount)}`
+      ? `${upcoming.label || "Payment"} · ${formatCurrency(upcoming.amount)}`
       : "None"
 
     const topWishlist = wishlist
@@ -535,7 +531,7 @@
       })[0]
 
     document.getElementById("dashTopWishlist").textContent = topWishlist
-      ? `${topWishlist.name} · ₱${money(topWishlist.price)}`
+      ? `${topWishlist.name} · ${formatCurrency(topWishlist.price)}`
       : "None"
   }
 

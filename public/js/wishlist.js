@@ -617,11 +617,11 @@ function updateWishlistStats(items) {
   })
 
   document.getElementById("wishlistTotalCount").textContent = items.length
-  document.getElementById("wishlistGrandTotal").textContent = grandTotal.toLocaleString()
+  document.getElementById("wishlistGrandTotal").textContent = formatCurrency(grandTotal)
   document.getElementById("wishlistHighCount").textContent = highCount
   document.getElementById("wishlistVeryHighCount").textContent = veryHighCount
-  document.getElementById("wishlistHighTotal").textContent = highTotal.toLocaleString()
-  document.getElementById("wishlistVeryHighTotal").textContent = veryHighTotal.toLocaleString()
+  document.getElementById("wishlistHighTotal").textContent = formatCurrency(highTotal)
+  document.getElementById("wishlistVeryHighTotal").textContent = formatCurrency(veryHighTotal)
 }
 
 function saveWishlistSortState() {
@@ -1246,14 +1246,20 @@ const mediumTotalEl = document.getElementById("wishlistMediumTotal")
   const highItems = allItems.filter(item => item.priority === "high")
 
   if (totalCountEl) totalCountEl.textContent = allItems.length
-  if (grandTotalEl) grandTotalEl.textContent = grandTotal.toLocaleString()
+  if (grandTotalEl) grandTotalEl.textContent = formatCurrency(grandTotal)
 if (mediumCountEl) mediumCountEl.textContent = mediumItems.length
 if (mediumTotalEl) {
-  mediumTotalEl.textContent = mediumItems.reduce((sum, item) => sum + Number(item.price || 0), 0).toLocaleString()
+  mediumTotalEl.textContent = formatCurrency(
+    mediumItems.reduce((sum, item) => sum + Number(item.price || 0), 0),
+    true
+  )
 }
   if (highCountEl) highCountEl.textContent = highItems.length
   if (highTotalEl) {
-    highTotalEl.textContent = highItems.reduce((sum, item) => sum + Number(item.price || 0), 0).toLocaleString()
+    highTotalEl.textContent = formatCurrency(
+      highItems.reduce((sum, item) => sum + Number(item.price || 0), 0),
+      true
+    )
   }
 
   updateWishlistToolbar()
@@ -1398,7 +1404,7 @@ function renderPurchasedWishlistItems(items = []) {
     <div class="purchased-wishlist-item">
       <div>
         <strong>${item.name || "Purchased Item"}</strong>
-        <span>₱${Number(item.price || 0).toLocaleString()}</span>
+        <span>${formatCurrency(item.price)}</span>
       </div>
 
       <button class="wishlist-owned-btn" type="button" onclick="restorePurchasedItem('${item.id}', '${item.wishlistId || ""}')">

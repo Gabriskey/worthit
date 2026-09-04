@@ -218,7 +218,7 @@ const availableToAllocate = Math.max(
 
 if (saved > availableToAllocate) {
   showToast(
-    `Only ₱${availableToAllocate.toLocaleString()} is available in this account`
+    `Only ${formatCurrency(availableToAllocate)} is available in this account`
   )
 
   savedInput.focus()
@@ -295,7 +295,7 @@ if (key === "saved") {
 
   if (nextSaved > availableForThisGoal) {
     showToast(
-      `Only ₱${availableForThisGoal.toLocaleString()} is available in this account`
+      `Only ${formatCurrency(availableForThisGoal)} is available in this account`
     )
 
     renderSavingsPage()
@@ -356,9 +356,9 @@ function renderSavingsSummary(goals) {
   const totalLeft = Math.max(totalTarget - totalSaved, 0)
 
   document.getElementById("savingsGoalCount").textContent = totalGoals
-  document.getElementById("savingsTotalTarget").textContent = totalTarget.toLocaleString()
-  document.getElementById("savingsTotalSaved").textContent = totalSaved.toLocaleString()
-  document.getElementById("savingsLeftTotal").textContent = totalLeft.toLocaleString()
+  document.getElementById("savingsTotalTarget").textContent = formatCurrency(totalTarget)
+  document.getElementById("savingsTotalSaved").textContent = formatCurrency(totalSaved)
+  document.getElementById("savingsLeftTotal").textContent = formatCurrency(totalLeft)
 }
 
 function renderSavingsPage() {
@@ -404,8 +404,8 @@ const accountName = linkedAccount?.name ||
             >${goal.name}</div>
 
 <div class="savings-goal-meta">
-  ₱${target.toLocaleString()} target ·
-  ₱${saved.toLocaleString()} saved ·
+  ${formatCurrency(target)} target ·
+  ${formatCurrency(saved)} saved ·
   Stored in ${accountName}
 </div>
           </div>
@@ -441,7 +441,7 @@ const accountName = linkedAccount?.name ||
 
           <div class="savings-field">
             <label>Left to Save</label>
-            <div class="savings-static-value">₱${left.toLocaleString()}</div>
+            <div class="savings-static-value">${formatCurrency(left)}</div>
           </div>
         </div>
       </div>

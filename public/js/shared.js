@@ -255,14 +255,13 @@ function cap(s) {
 
 function formatCurrency(value, withSymbol = true) {
   const n = Number(value || 0)
-  const hasDecimals = n % 1 !== 0
-
-  const formatted = n.toLocaleString(undefined, {
-    minimumFractionDigits: hasDecimals ? 2 : 0,
+  const formatted = Math.abs(n).toLocaleString("en-PH", {
+    minimumFractionDigits: 0,
     maximumFractionDigits: 2
   })
+  const sign = n < 0 ? "-" : ""
 
-  return withSymbol ? `₱${formatted}` : formatted
+  return withSymbol ? `${sign}₱${formatted}` : `${sign}${formatted}`
 }
 
 function showToast(message) {
