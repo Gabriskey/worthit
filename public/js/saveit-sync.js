@@ -132,6 +132,10 @@ window
     return;
   }
 
+  window
+    .showWorthItCloudLoading
+    ?.();
+
   try {
     await loadSaveItForUser(user);
 
@@ -139,14 +143,14 @@ window
       `SaveIt loaded for ${user.email}`
     );
 
-    window
-  .hideWorthItCloudLoading
-  ?.();
-
   } catch (error) {
     console.error(
       "SaveIt cloud load failed:",
       error
     );
+  } finally {
+    window
+      .hideWorthItCloudLoading
+      ?.();
   }
 });
