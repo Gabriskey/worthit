@@ -1045,6 +1045,40 @@ html[data-theme="dark"] body::after {
   margin: 0.5rem 0;
 }
 
+.worthit-restore-confirmation--danger {
+  border-color: var(--danger);
+}
+
+.worthit-restore-verification {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  color: var(--text);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.worthit-restore-verification input {
+  margin-top: 0.15rem;
+  accent-color: var(--danger);
+}
+
+.worthit-restore-danger-button {
+  border-color: var(--danger);
+  background: var(--danger);
+  color: #fff;
+}
+
+.worthit-restore-danger-button:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+.worthit-restore-danger-button:disabled {
+  cursor: not-allowed;
+  filter: grayscale(1);
+  opacity: 0.55;
+}
+
 .worthit-restore-result__line {
   color: var(--text-secondary);
   font-size: 0.9rem;

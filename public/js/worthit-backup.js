@@ -1,4 +1,4 @@
-/* Centralized WorthIt backup export and read-only restore preview. */
+/* Centralized WorthIt backup export and conservative restore flow. */
 
 import { watchAuthState } from "./auth.js"
 import {
@@ -47,6 +47,15 @@ const AREA_LABELS = Object.freeze({
   saveit: "SaveIt",
   preferences: "Preferences"
 })
+
+const SAFETY_BACKUP_AREAS = Object.freeze([
+  "earnit",
+  "spendit",
+  "planit",
+  "wishlist",
+  "saveit",
+  "preferences"
+])
 
 const JSON_STORAGE_KEYS = new Set([
   "salary-growth-tracker-v1",
@@ -415,7 +424,14 @@ function backupFilename() {
   return `worthit-backup-${new Date().toISOString().slice(0, 10)}.json`
 }
 
-function downloadBackup(backup) {
+function safetyBackupFilename() {
+  const timestamp = new Date().toISOString()
+  const filenameTimestamp = `${timestamp.slice(0, 10)}-${timestamp.slice(11, 19).replace(/:/g, "")}`
+
+  return `worthit-before-restore-${filenameTimestamp}.json`
+}
+
+function downloadBackup(backup, filename = backupFilename()) {
   const blob = new Blob([JSON.stringify(backup, null, 2)], {
     type: "application/json"
   })
@@ -423,7 +439,7 @@ function downloadBackup(backup) {
   const link = document.createElement("a")
 
   link.href = url
-  link.download = backupFilename()
+  link.download = filename
   document.body.appendChild(link)
   link.click()
   link.remove()
@@ -482,6 +498,7 @@ function validateBackup(backup) {
   })
 
   const data = {}
+  const rawData = {}
 
   included.forEach(area => {
     const section = backup.data[area]
@@ -499,21 +516,25 @@ function validateBackup(backup) {
     })
 
     data[area] = {}
+    rawData[area] = {}
 
     expectedKeys.forEach(storageKey => {
       if (!hasOwn(section, storageKey)) {
         throw new Error(`${AREA_LABELS[area]} is missing ${storageKey}.`)
       }
 
+      const rawValue = section[storageKey]
+
       data[area][storageKey] = parseStorageValue(
-        section[storageKey],
+        rawValue,
         storageKey,
         "The backup"
       )
+      rawData[area][storageKey] = rawValue
     })
   })
 
-  return { exportedAt: backup.exportedAt, included, data }
+  return { exportedAt: backup.exportedAt, included, data, rawData }
 }
 
 function buildCurrentData(cloudStates) {
@@ -536,6 +557,22 @@ function buildCurrentData(cloudStates) {
   })
 
   return data
+}
+
+function buildCurrentStorageValues(cloudStates) {
+  const values = {}
+
+  Object.keys(BACKUP_AREAS).forEach(area => {
+    values[area] = {}
+
+    BACKUP_AREAS[area].forEach(item => {
+      values[area][item.storageKey] = item.source === "local"
+        ? localStorage.getItem(item.storageKey)
+        : readCloudStorageValue(cloudStates, item.appName, item.storageKey)
+    })
+  })
+
+  return values
 }
 
 function arrayValue(data, area, storageKey) {
@@ -729,7 +766,10 @@ function createRelationshipBlockers(collections, selectedAreas, mode) {
     })
   }
 
-  if (selectedAreas.includes("earnit")) {
+  if (
+    selectedAreas.includes("earnit") ||
+    (mode === "replace" && selectedAreas.includes("spendit"))
+  ) {
     availableStableRecords(
       collections, selectedAreas, mode, "earnit", "salary-growth-tracker-v1"
     ).forEach(entry => {
@@ -758,7 +798,10 @@ function createRelationshipBlockers(collections, selectedAreas, mode) {
     })
   }
 
-  if (selectedAreas.includes("spendit")) {
+  if (
+    selectedAreas.includes("spendit") ||
+    (mode === "replace" && selectedAreas.includes("earnit"))
+  ) {
     availableStableRecords(
       collections, selectedAreas, mode, "spendit", "expensepath-records-v1"
     ).filter(record => record.source === "earnit")
@@ -776,7 +819,10 @@ function createRelationshipBlockers(collections, selectedAreas, mode) {
       })
   }
 
-  if (selectedAreas.includes("saveit")) {
+  if (
+    selectedAreas.includes("saveit") ||
+    (mode === "replace" && selectedAreas.includes("spendit"))
+  ) {
     availableStableRecords(
       collections, selectedAreas, mode, "saveit", "savingsGoals"
     ).forEach(goal => {
@@ -787,7 +833,10 @@ function createRelationshipBlockers(collections, selectedAreas, mode) {
     })
   }
 
-  if (selectedAreas.includes("wishlist")) {
+  if (
+    selectedAreas.includes("wishlist") ||
+    (mode === "replace" && selectedAreas.includes("planit"))
+  ) {
     availableStableRecords(
       collections, selectedAreas, mode, "wishlist", "wishlistItems"
     ).forEach(item => {
@@ -814,7 +863,10 @@ function createRelationshipBlockers(collections, selectedAreas, mode) {
     })
   }
 
-  if (selectedAreas.includes("planit")) {
+  if (
+    selectedAreas.includes("planit") ||
+    (mode === "replace" && selectedAreas.includes("wishlist"))
+  ) {
     planner.filter(entry => entry.wishlistId).forEach(entry => {
       const wishlistId = String(entry.wishlistId)
       const item = wishlistById.get(wishlistId)
@@ -971,6 +1023,70 @@ function addStorageUpdate(storageUpdates, appName, storageKey, value) {
   }
 
   storageUpdates[appName][storageKey] = JSON.stringify(value)
+}
+
+function addRawStorageUpdate(storageUpdates, appName, storageKey, value) {
+  if (!hasOwn(storageUpdates, appName)) {
+    storageUpdates[appName] = {}
+  }
+
+  storageUpdates[appName][storageKey] = value
+}
+
+function buildReplaceRestorePlan(backup, current, currentValues, selectedAreas) {
+  const collections = { backup, current }
+  const blockers = createRelationshipBlockers(collections, selectedAreas, "replace")
+  const storageUpdates = {}
+  const localStorageUpdates = {}
+  const replacedAreas = []
+
+  if (!selectedAreas.length) {
+    addBlockingIssue(blockers, "Choose at least one section to replace.")
+  }
+
+  selectedAreas.forEach(area => {
+    let areaChanged = false
+
+    BACKUP_AREAS[area].forEach(item => {
+      const replacement = backup.rawData[area][item.storageKey]
+      const currentValue = currentValues[area][item.storageKey]
+
+      if (replacement === currentValue) return
+
+      areaChanged = true
+
+      if (item.source === "local") {
+        localStorageUpdates[item.storageKey] = replacement
+        return
+      }
+
+      addRawStorageUpdate(
+        storageUpdates,
+        item.appName,
+        item.storageKey,
+        replacement
+      )
+      localStorageUpdates[item.storageKey] = replacement
+    })
+
+    if (areaChanged) replacedAreas.push(area)
+  })
+
+  return {
+    blockers,
+    storageUpdates,
+    localStorageUpdates,
+    replacedAreas
+  }
+}
+
+function storageValuesMatchSafetySnapshot(currentValues, safetySnapshot) {
+  return SAFETY_BACKUP_AREAS.every(area => {
+    return BACKUP_AREAS[area].every(item => {
+      return currentValues[area][item.storageKey] ===
+        safetySnapshot[area][item.storageKey]
+    })
+  })
 }
 
 function buildAddRestorePlan(backup, current, selectedAreas) {
@@ -1193,6 +1309,12 @@ function initializeWorthItBackup() {
   const addRestoreSummary = document.getElementById("worthitAddRestoreSummary")
   const cancelAddRestoreButton = document.getElementById("cancelWorthItAddRestore")
   const confirmAddRestoreButton = document.getElementById("confirmWorthItAddRestore")
+  const prepareReplaceRestoreButton = document.getElementById("prepareWorthItReplaceRestore")
+  const replaceConfirmation = document.getElementById("worthitReplaceRestoreConfirmation")
+  const replaceRestoreSummary = document.getElementById("worthitReplaceRestoreSummary")
+  const verifySafetyBackup = document.getElementById("verifyWorthItSafetyBackup")
+  const cancelReplaceRestoreButton = document.getElementById("cancelWorthItReplaceRestore")
+  const confirmReplaceRestoreButton = document.getElementById("confirmWorthItReplaceRestore")
   const backButton = document.getElementById("backToWorthItBackup")
   const restoreCancelButton = document.getElementById("cancelWorthItRestore")
   const status = document.getElementById("worthitBackupStatus")
@@ -1204,6 +1326,8 @@ function initializeWorthItBackup() {
     !restoreResults || !restoreStatus || !addRestoreButton || !addConfirmation ||
     !addRestoreSummary ||
     !cancelAddRestoreButton || !confirmAddRestoreButton || !backButton ||
+    !prepareReplaceRestoreButton || !replaceConfirmation || !replaceRestoreSummary ||
+    !verifySafetyBackup || !cancelReplaceRestoreButton || !confirmReplaceRestoreButton ||
     !restoreCancelButton || !status
   ) {
     return
@@ -1220,6 +1344,9 @@ function initializeWorthItBackup() {
   let restoreBackup = null
   let restoreUserId = ""
   let latestAddPlan = null
+  let latestReplacePlan = null
+  let safetySnapshot = null
+  let safetySelectedAreas = []
 
   function setStatus(message = "", isError = false) {
     status.textContent = message
@@ -1232,6 +1359,7 @@ function initializeWorthItBackup() {
     exportView.hidden = false
     restoreView.hidden = true
     addConfirmation.hidden = true
+    invalidateSafetyBackup()
     eyebrow.textContent = "BACK UP WORTHIT"
     title.textContent = "Choose what to include"
     closeButton.setAttribute("aria-label", "Close backup options")
@@ -1255,6 +1383,25 @@ function initializeWorthItBackup() {
       : plan.addedCount
         ? "Review the Add confirmation."
         : "Show the no-op restore result."
+  }
+
+  function invalidateSafetyBackup() {
+    safetySnapshot = null
+    safetySelectedAreas = []
+    replaceConfirmation.hidden = true
+    verifySafetyBackup.checked = false
+    confirmReplaceRestoreButton.disabled = true
+  }
+
+  function updateReplaceRestoreAction(mode, plan = null) {
+    latestReplacePlan = mode === "replace" ? plan : null
+    prepareReplaceRestoreButton.hidden = mode !== "replace"
+    prepareReplaceRestoreButton.disabled = !plan || Boolean(plan.blockers.length)
+    prepareReplaceRestoreButton.title = !plan || plan.blockers.length
+      ? "Resolve the Replace blockers before restoring."
+      : plan.replacedAreas.length
+        ? "Prepare a safety backup before replacing."
+        : "Show the no-op replace result."
   }
 
   function openModal() {
@@ -1362,6 +1509,8 @@ function initializeWorthItBackup() {
   function renderRestorePreview() {
     if (!restoreCollections || !restoreBackup) return
 
+    invalidateSafetyBackup()
+
     if (!currentUser || currentUser.uid !== restoreUserId) {
       restoreResults.replaceChildren()
       const details = addResultCard(restoreResults, "Preview unavailable")
@@ -1372,6 +1521,7 @@ function initializeWorthItBackup() {
         "blocking"
       )
       updateAddRestoreAction("replace")
+      updateReplaceRestoreAction("add")
       return
     }
 
@@ -1379,6 +1529,14 @@ function initializeWorthItBackup() {
     const selectedAreas = selectedAreasFromChoices(restoreChoices)
     const addPlan = mode === "add"
       ? buildAddRestorePlan(restoreBackup, restoreCollections.current, selectedAreas)
+      : null
+    const replacePlan = mode === "replace"
+      ? buildReplaceRestorePlan(
+        restoreBackup,
+        restoreCollections.current,
+        restoreCollections.currentValues,
+        selectedAreas
+      )
       : null
 
     restoreResults.replaceChildren()
@@ -1388,6 +1546,7 @@ function initializeWorthItBackup() {
     if (!selectedAreas.length) {
       addResultLine(summary, "!", "Choose at least one available section to preview.", "warning")
       updateAddRestoreAction(mode, addPlan)
+      updateReplaceRestoreAction(mode, replacePlan)
       return
     }
 
@@ -1409,6 +1568,10 @@ function initializeWorthItBackup() {
         )
         addResultLine(details, "✓", sectionCounts(restoreBackup.data, area).join(" • "), "valid")
       })
+
+      if (!replacePlan.blockers.length && !replacePlan.replacedAreas.length) {
+        addResultLine(summary, "=", "Selected data already matches this backup.", "valid")
+      }
     } else {
       selectedAreas.forEach(area => {
         const details = addResultCard(restoreResults, AREA_LABELS[area])
@@ -1498,7 +1661,7 @@ function initializeWorthItBackup() {
 
     const blockers = mode === "add"
       ? addPlan.blockers
-      : createRelationshipBlockers(restoreCollections, selectedAreas, mode)
+      : replacePlan.blockers
 
     if (blockers.length) {
       const details = addResultCard(
@@ -1526,6 +1689,7 @@ function initializeWorthItBackup() {
     }
 
     updateAddRestoreAction(mode, addPlan)
+    updateReplaceRestoreAction(mode, replacePlan)
   }
 
   function showAddConfirmation() {
@@ -1557,9 +1721,254 @@ function initializeWorthItBackup() {
   function updateRestoredLocalStorage(storageUpdates) {
     Object.values(storageUpdates).forEach(storage => {
       Object.entries(storage).forEach(([storageKey, value]) => {
-        localStorage.setItem(storageKey, value)
+        if (value === null) {
+          localStorage.removeItem(storageKey)
+        } else {
+          localStorage.setItem(storageKey, value)
+        }
       })
     })
+  }
+
+  function updateLocalStorageValues(storageValues) {
+    Object.entries(storageValues).forEach(([storageKey, value]) => {
+      if (value === null) {
+        localStorage.removeItem(storageKey)
+      } else {
+        localStorage.setItem(storageKey, value)
+      }
+    })
+  }
+
+  function showReplaceConfirmation(selectedAreas) {
+    const unchangedAreas = SAFETY_BACKUP_AREAS.filter(
+      area => !selectedAreas.includes(area)
+    )
+    const details = replaceRestoreSummary
+
+    details.replaceChildren()
+    addResultLine(
+      details,
+      "!",
+      `Selected: ${selectedAreas.map(area => AREA_LABELS[area]).join(", ")}`,
+      "warning"
+    )
+    addResultLine(
+      details,
+      "=",
+      `Unchanged: ${unchangedAreas.map(area => AREA_LABELS[area]).join(", ") || "None"}`,
+      "valid"
+    )
+    replaceConfirmation.hidden = false
+    verifySafetyBackup.checked = false
+    confirmReplaceRestoreButton.disabled = true
+    verifySafetyBackup.focus()
+  }
+
+  async function prepareReplaceSafetyBackup() {
+    const mode = restoreModes.find(input => input.checked)?.value || "add"
+    const selectedAreas = selectedAreasFromChoices(restoreChoices)
+
+    if (mode !== "replace" || !restoreBackup || !currentUser || currentUser.uid !== restoreUserId) {
+      setStatus("The signed-in account changed. Choose the backup file again.", true)
+      return
+    }
+
+    if (!latestReplacePlan || latestReplacePlan.blockers.length) {
+      setStatus("Resolve the Replace blockers before restoring.", true)
+      return
+    }
+
+    if (!latestReplacePlan.replacedAreas.length) {
+      setStatus("Selected data already matches this backup.")
+      return
+    }
+
+    const userId = restoreUserId
+
+    prepareReplaceRestoreButton.disabled = true
+    setStatus("Preparing a safety backup of your current cloud data...")
+
+    try {
+      const cloudStates = await loadCloudStates(userId, SAFETY_BACKUP_AREAS)
+
+      if (!currentUser || currentUser.uid !== userId) {
+        throw new Error("Your signed-in account changed before the safety backup was ready.")
+      }
+
+      const freshCurrent = buildCurrentData(cloudStates)
+      const freshValues = buildCurrentStorageValues(cloudStates)
+      const freshPlan = buildReplaceRestorePlan(
+        restoreBackup,
+        freshCurrent,
+        freshValues,
+        selectedAreas
+      )
+
+      if (freshPlan.blockers.length) {
+        throw new Error(`Replace stopped: ${freshPlan.blockers[0]}`)
+      }
+
+      if (!freshPlan.replacedAreas.length) {
+        restoreCollections = {
+          backup: restoreBackup,
+          current: freshCurrent,
+          currentValues: freshValues
+        }
+        setStatus("Selected data already matches this backup.")
+        renderRestorePreview()
+        return
+      }
+
+      const safetyBackup = buildBackup(SAFETY_BACKUP_AREAS, cloudStates)
+      downloadBackup(safetyBackup, safetyBackupFilename())
+
+      restoreCollections = {
+        backup: restoreBackup,
+        current: freshCurrent,
+        currentValues: freshValues
+      }
+      latestReplacePlan = freshPlan
+      safetySnapshot = freshValues
+      safetySelectedAreas = [...selectedAreas]
+      showReplaceConfirmation(selectedAreas)
+      setStatus(
+        "Safety backup download initiated. Verify it in your browser Downloads before continuing."
+      )
+    } catch (error) {
+      console.error("WorthIt safety backup preparation failed:", error)
+      invalidateSafetyBackup()
+      setStatus(error.message || "Could not prepare the safety backup. No data was replaced.", true)
+    } finally {
+      prepareReplaceRestoreButton.disabled = false
+    }
+  }
+
+  async function replaceBackupInCurrentAccount() {
+    const mode = restoreModes.find(input => input.checked)?.value || "add"
+    const selectedAreas = selectedAreasFromChoices(restoreChoices)
+
+    if (mode !== "replace" || !restoreBackup || !currentUser || currentUser.uid !== restoreUserId) {
+      setStatus("The signed-in account changed. Choose the backup file again.", true)
+      return
+    }
+
+    if (!safetySnapshot || !verifySafetyBackup.checked) {
+      setStatus("Verify the safety backup download before replacing data.", true)
+      return
+    }
+
+    if (selectedAreas.join("|") !== safetySelectedAreas.join("|")) {
+      invalidateSafetyBackup()
+      setStatus("Restore choices changed. Create a new safety backup before replacing.", true)
+      return
+    }
+
+    const userId = restoreUserId
+    let cloudCommitted = false
+
+    confirmReplaceRestoreButton.disabled = true
+    cancelReplaceRestoreButton.disabled = true
+    prepareReplaceRestoreButton.disabled = true
+    setStatus("Replacing selected cloud data...")
+
+    try {
+      const result = await runUserStorageRestoreTransaction(
+        userId,
+        ["earnit", "spendit", "planit", "saveit"],
+        freshCloudStates => {
+          if (!currentUser || currentUser.uid !== userId) {
+            throw new Error("Your signed-in account changed before the replace could be applied.")
+          }
+
+          const freshValues = buildCurrentStorageValues(freshCloudStates)
+
+          if (!storageValuesMatchSafetySnapshot(freshValues, safetySnapshot)) {
+            throw new Error(
+              "WorthIt changed after the safety backup was prepared. Create a new safety backup before replacing."
+            )
+          }
+
+          const freshCurrent = buildCurrentData(freshCloudStates)
+          const freshPlan = buildReplaceRestorePlan(
+            restoreBackup,
+            freshCurrent,
+            freshValues,
+            selectedAreas
+          )
+
+          if (freshPlan.blockers.length) {
+            throw new Error(`Replace stopped: ${freshPlan.blockers[0]}`)
+          }
+
+          return {
+            storageUpdates: freshPlan.storageUpdates,
+            replacePlan: freshPlan
+          }
+        }
+      )
+
+      if (!result.replacePlan.replacedAreas.length) {
+        invalidateSafetyBackup()
+        setStatus("Selected data already matches this backup.")
+        renderRestorePreview()
+        return
+      }
+
+      cloudCommitted = Object.keys(result.storageUpdates).length > 0
+
+      if (!currentUser || currentUser.uid !== userId) {
+        throw new Error(
+          "The cloud replace succeeded, but this browser changed accounts before its local cache could update."
+        )
+      }
+
+      try {
+        updateLocalStorageValues(result.replacePlan.localStorageUpdates)
+      } catch (error) {
+        console.error("WorthIt backup local cache update failed:", error)
+        throw new Error(
+          "Your cloud data was replaced, but this browser could not refresh its local cache. Reload Home before continuing."
+        )
+      }
+
+      replaceConfirmation.hidden = true
+      restoreResults.replaceChildren()
+      const details = addResultCard(restoreResults, "Replace complete")
+      addResultLine(
+        details,
+        "✓",
+        `Replaced: ${result.replacePlan.replacedAreas.map(area => AREA_LABELS[area]).join(", ")}`,
+        "valid"
+      )
+      addResultLine(
+        details,
+        "=",
+        `Unchanged: ${SAFETY_BACKUP_AREAS
+          .filter(area => !result.replacePlan.replacedAreas.includes(area))
+          .map(area => AREA_LABELS[area])
+          .join(", ") || "None"}`,
+        "valid"
+      )
+      setStatus("Selected data replaced. Reloading Home...")
+      window.setTimeout(() => window.location.reload(), 700)
+    } catch (error) {
+      console.error("WorthIt backup Replace restore failed:", error)
+      replaceConfirmation.hidden = true
+
+      if (cloudCommitted) {
+        setStatus(error.message, true)
+        return
+      }
+
+      invalidateSafetyBackup()
+      setStatus(error.message || "Could not replace this backup data.", true)
+      renderRestorePreview()
+    } finally {
+      prepareReplaceRestoreButton.disabled = false
+      confirmReplaceRestoreButton.disabled = false
+      cancelReplaceRestoreButton.disabled = false
+    }
   }
 
   async function addBackupToCurrentAccount() {
@@ -1653,9 +2062,13 @@ function initializeWorthItBackup() {
     }
   }
 
-  function showRestorePreview(validBackup, currentData, userId) {
+  function showRestorePreview(validBackup, currentData, currentValues, userId) {
     restoreBackup = validBackup
-    restoreCollections = { backup: validBackup, current: currentData }
+    restoreCollections = {
+      backup: validBackup,
+      current: currentData,
+      currentValues
+    }
     restoreUserId = userId
     restoreModes.forEach(input => {
       input.checked = input.value === "add"
@@ -1712,7 +2125,12 @@ function initializeWorthItBackup() {
         throw new Error("Your signed-in account changed before the preview was ready.")
       }
 
-      showRestorePreview(validBackup, buildCurrentData(cloudStates), userId)
+      showRestorePreview(
+        validBackup,
+        buildCurrentData(cloudStates),
+        buildCurrentStorageValues(cloudStates),
+        userId
+      )
       setStatus()
     } catch (error) {
       console.error("WorthIt backup restore preview failed:", error)
@@ -1745,6 +2163,15 @@ function initializeWorthItBackup() {
     addRestoreButton.focus()
   })
   confirmAddRestoreButton.addEventListener("click", addBackupToCurrentAccount)
+  prepareReplaceRestoreButton.addEventListener("click", prepareReplaceSafetyBackup)
+  cancelReplaceRestoreButton.addEventListener("click", () => {
+    invalidateSafetyBackup()
+    prepareReplaceRestoreButton.focus()
+  })
+  verifySafetyBackup.addEventListener("change", () => {
+    confirmReplaceRestoreButton.disabled = !verifySafetyBackup.checked
+  })
+  confirmReplaceRestoreButton.addEventListener("click", replaceBackupInCurrentAccount)
   restoreModes.forEach(input => {
     input.addEventListener("change", () => {
       renderRestoreChoices(new Set(

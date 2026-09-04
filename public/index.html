@@ -380,7 +380,7 @@
           </label>
           <label>
             <input type="radio" name="worthitRestoreMode" value="replace">
-            <span><strong>Replace selected data</strong><small>Destructive in a future phase. This screen makes no changes.</small></span>
+            <span><strong>Replace selected data</strong><small>Destructive. A safety backup is required before replacing.</small></span>
           </label>
         </fieldset>
 
@@ -403,6 +403,26 @@
           </div>
         </section>
 
+        <section id="worthitReplaceRestoreConfirmation" class="worthit-restore-confirmation worthit-restore-confirmation--danger" hidden>
+          <strong>REPLACE SELECTED DATA?</strong>
+          <p>This will overwrite the selected WorthIt data in the currently signed-in account.</p>
+          <div id="worthitReplaceRestoreSummary" class="worthit-restore-result__details"></div>
+          <p>A safety backup has been prepared and its download initiated. Verify it in your browser Downloads before continuing.</p>
+          <label class="worthit-restore-verification">
+            <input id="verifyWorthItSafetyBackup" type="checkbox">
+            <span>I verified the safety backup download</span>
+          </label>
+          <p>Close other WorthIt tabs before continuing.</p>
+          <div class="worthit-backup-modal__actions-right">
+            <button id="cancelWorthItReplaceRestore" class="btn btn-secondary" type="button">
+              Cancel
+            </button>
+            <button id="confirmWorthItReplaceRestore" class="btn worthit-restore-danger-button" type="button" disabled>
+              Replace Selected Data
+            </button>
+          </div>
+        </section>
+
         <div class="worthit-backup-modal__actions">
           <button id="backToWorthItBackup" class="btn btn-secondary" type="button">
             Back
@@ -412,6 +432,9 @@
           </button>
           <button id="addWorthItRestore" class="btn btn-primary" type="button" hidden>
             Add to WorthIt
+          </button>
+          <button id="prepareWorthItReplaceRestore" class="btn worthit-restore-danger-button" type="button" hidden>
+            Prepare Safety Backup
           </button>
         </div>
       </div>
