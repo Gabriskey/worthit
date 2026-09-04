@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>SpendIt | WorthIt</title>
-  <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
   <link rel="stylesheet" href="../css/spendit.css">
 
 <link rel="stylesheet" href="../css/worthit-shell.css?v=20260813-1">
@@ -229,16 +228,6 @@
     </section>
   </section>
 
-  <div class="bottom-actions-row data-actions">
-    <button class="btn data-btn" type="button" onclick="downloadPaidItData()">Download data</button>
-
-    <label class="btn data-btn">
-      Upload data
-      <input id="paidItUploadInput" type="file" accept=".json,.csv,.xls,.xlsx" hidden onchange="handlePaidItUpload(event)">
-    </label>
-
-    <button class="btn data-btn clear-data-btn" type="button" onclick="clearAllEntries()">Clear all entries</button>
-  </div>
 </div>
 
 <div class="quick-action-overlay"
@@ -393,28 +382,6 @@ id="quickOverlay" onclick="toggleQuick(false)"></div>
   </div>
 </div>
 
-<div class="modal-backdrop" id="importAccountModalBackdrop">
-  <div class="modal">
-    <div class="modal-header">
-      <h3>Choose account for imported records</h3>
-      <button class="btn" type="button" onclick="closeImportAccountModal()">Close</button>
-    </div>
-
-    <div class="form">
-      <div>
-        <label>Account</label>
-        <select id="importAccountSelect"></select>
-      </div>
-
-      <p class="subtitle" id="importPreviewText">Ready to import records.</p>
-
-      <div class="modal-actions">
-        <button class="btn" type="button" onclick="closeImportAccountModal()">Cancel</button>
-        <button class="btn primary" type="button" onclick="confirmSpreadsheetImport()">Import</button>
-      </div>
-    </div>
-  </div>
-</div>
 
 <div class="modal-backdrop" id="deleteModalBackdrop" onclick="closeDeleteModal()">
   <div class="modal" onclick="event.stopPropagation()">
