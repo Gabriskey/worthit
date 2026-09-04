@@ -1017,6 +1017,18 @@ function addPayoff() {
     return
   }
 
+  if (paid < 0) {
+    showToast("Paid amount cannot be negative.")
+    paidInput.focus()
+    return
+  }
+
+  if (paid > total) {
+    showToast("Paid amount cannot exceed the total.")
+    paidInput.focus()
+    return
+  }
+
   const payoffs = loadPayoffs()
   payoffs.push(normalizePayoff({
     id: String(Date.now()),
@@ -1049,6 +1061,41 @@ function updatePayoffField(id, key, value) {
 
   if (key === "name" || key === "category") {
     item[key] = String(value || "").trim()
+  } else if (key === "paid") {
+    const nextPaid =
+      Number(String(value || "").replace(/[^0-9.-]/g, "")) || 0
+
+    if (nextPaid < 0) {
+      showToast("Paid amount cannot be negative.")
+      renderPayoffTracker()
+      return
+    }
+
+    if (nextPaid > Number(item.total || 0)) {
+      showToast("Paid amount cannot exceed the total.")
+      renderPayoffTracker()
+      return
+    }
+
+    item.paid = nextPaid
+  } else if (key === "total") {
+    const nextTotal =
+      Number(String(value || "").replace(/[^0-9.]/g, "")) || 0
+    const currentPaid = Number(item.paid || 0)
+
+    if (currentPaid < 0) {
+      showToast("Paid amount cannot be negative.")
+      renderPayoffTracker()
+      return
+    }
+
+    if (currentPaid > nextTotal) {
+      showToast("Paid amount cannot exceed the total.")
+      renderPayoffTracker()
+      return
+    }
+
+    item.total = nextTotal
   } else {
     item[key] = Number(String(value || "").replace(/[^0-9.]/g, "")) || 0
   }
