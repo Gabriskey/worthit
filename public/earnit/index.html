@@ -154,22 +154,6 @@
   </section>
 </section>
 
-<div class="bottom-actions-row" style="margin-top:18px;">
-  <button class="btn data-btn" id="saveDataBtn" type="button">Download data</button>
-  <label class="btn data-btn" for="importFile">Upload data</label>
-  <input id="importFile" type="file" accept="application/json" class="sr-only" />
-  <button id="clearAllBtn" class="clear-data-btn">
-  Clear All Entries
-</button>
-</div>
-
-<p
-  id="importResultMessage"
-  class="import-result"
-  role="status"
-  hidden
-></p>
-
 </section>
 
 <section id="insightsPage" class="page">
@@ -352,73 +336,6 @@
 </div>
 
 <div
-  id="clearAllEntriesModalBackdrop"
-  class="modal-backdrop"
-  aria-hidden="true"
->
-  <div
-    class="modal"
-    role="dialog"
-    aria-modal="true"
-    aria-labelledby="clearAllEntriesModalTitle"
-  >
-    <div class="modal-header">
-      <h3 id="clearAllEntriesModalTitle">
-        Clear all entries?
-      </h3>
-
-      <button
-        class="btn"
-        type="button"
-        id="closeClearAllEntriesModalBtn"
-      >
-        Close
-      </button>
-    </div>
-
-    <p
-      id="clearAllEntriesModalText"
-      class="hint"
-    ></p>
-
-    <label
-      id="clearAllSpendItOption"
-      class="delete-linked-option"
-    >
-      <input
-        id="clearAllSpendItCheckbox"
-        type="checkbox"
-        checked
-      >
-
-      <span
-        id="clearAllSpendItText"
-      >
-        Also delete linked SpendIt incomes
-      </span>
-    </label>
-
-    <div class="modal-actions">
-      <button
-        class="btn"
-        type="button"
-        id="cancelClearAllEntriesBtn"
-      >
-        Cancel
-      </button>
-
-      <button
-        class="btn ghost-danger"
-        type="button"
-        id="confirmClearAllEntriesBtn"
-      >
-        Clear All
-      </button>
-    </div>
-  </div>
-</div>
-
-<div
   id="deleteEntryModalBackdrop"
   class="modal-backdrop"
   aria-hidden="true"
@@ -480,102 +397,6 @@
         id="confirmDeleteEntryBtn"
       >
         Delete
-      </button>
-    </div>
-  </div>
-</div>
-
-<div
-  id="importChoiceModalBackdrop"
-  class="modal-backdrop"
-  aria-hidden="true"
->
-  <div
-    class="modal"
-    role="dialog"
-    aria-modal="true"
-    aria-labelledby="importChoiceModalTitle"
-  >
-    <div class="modal-header">
-      <h3 id="importChoiceModalTitle">
-        Import EarnIt backup
-      </h3>
-
-      <button
-        class="btn"
-        type="button"
-        id="closeImportChoiceModalBtn"
-      >
-        Close
-      </button>
-    </div>
-
-    <p
-      id="importChoiceSummary"
-      class="hint"
-    ></p>
-
-    <label
-      id="importAddOption"
-      class="import-choice-option is-selected"
-    >
-      <input
-        id="importAddRadio"
-        type="radio"
-        name="importMode"
-        value="add"
-        checked
-      >
-
-      <span class="import-choice-copy">
-        <strong>ADD TO CURRENT DATA</strong>
-        <span class="hint">
-          Keep current entries and add only backup entries with new IDs.
-        </span>
-      </span>
-    </label>
-
-    <label
-      id="importReplaceOption"
-      class="import-choice-option"
-    >
-      <input
-        id="importReplaceRadio"
-        type="radio"
-        name="importMode"
-        value="replace"
-      >
-
-      <span class="import-choice-copy">
-        <strong class="import-choice-danger">
-          REPLACE CURRENT DATA
-        </strong>
-        <span class="hint import-choice-danger">
-          Destructive: replace current EarnIt entries with this backup.
-        </span>
-      </span>
-    </label>
-
-    <p
-      id="importReplaceConfirmation"
-      class="hint import-choice-danger is-hidden"
-    ></p>
-
-    <div class="modal-actions">
-      <button
-        class="btn"
-        type="button"
-        id="cancelImportChoiceBtn"
-      >
-        Cancel
-      </button>
-
-      <button
-        class="btn primary"
-        type="button"
-        id="confirmImportChoiceBtn"
-      >
-        Add entries
       </button>
     </div>
   </div>
