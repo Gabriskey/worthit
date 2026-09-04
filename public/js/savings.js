@@ -187,6 +187,12 @@ function addSavingsGoal() {
     return
   }
 
+  if (saved < 0) {
+    showToast("Amount saved cannot be negative.")
+    savedInput.focus()
+    return
+  }
+
   if (!accountId) {
   showToast("Please choose a SpendIt account")
   accountInput?.focus()
