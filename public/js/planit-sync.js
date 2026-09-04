@@ -207,8 +207,16 @@ watchAuthState(async user => {
       .reloadPlanItWishlistFromStorage
       ?.();
 
+    window
+      .finishWorthItCloudLoading
+      ?.();
+
     return;
   }
+
+  window
+    .showWorthItCloudLoading
+    ?.();
 
   try {
     await loadPlanItForUser(user);
@@ -217,16 +225,14 @@ watchAuthState(async user => {
       `PlanIt loaded for ${user.email}`
     );
 
-
-    window
-  .finishWorthItCloudLoading
-  ?.();
-
-    } catch (error) {
+  } catch (error) {
     console.error(
       "PlanIt cloud load failed:",
       error
     );
-  
+  } finally {
+    window
+      .finishWorthItCloudLoading
+      ?.();
   }
 });
