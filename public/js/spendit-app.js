@@ -1750,6 +1750,15 @@ document.getElementById('recordForm').addEventListener('submit', e => {
 
   const amount = Number(recordAmount.value || 0);
 
+  if (
+    recordType !== 'transfer' &&
+    amount <= 0
+  ) {
+    return alert(
+      'Amount must be greater than 0.'
+    );
+  }
+
   if (!amount) {
     return alert('Enter an amount first.');
   }
