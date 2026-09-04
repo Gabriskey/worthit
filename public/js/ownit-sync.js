@@ -159,8 +159,17 @@ watchAuthState(async user => {
 
     refreshOwnIt();
 
+    window
+      .finishWorthItCloudLoading
+      ?.();
+
     return;
   }
+
+
+  window
+    .showWorthItCloudLoading
+    ?.();
 
 
   try {
@@ -174,16 +183,15 @@ watchAuthState(async user => {
       `OwnIt loaded for ${user.email}`
     );
 
-    window
-  .finishWorthItCloudLoading
-  ?.();
-
   } catch (error) {
 
     console.error(
       "OwnIt cloud load failed:",
       error
     );
-
+  } finally {
+    window
+      .finishWorthItCloudLoading
+      ?.();
   }
 });
