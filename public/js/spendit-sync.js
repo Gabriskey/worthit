@@ -20,6 +20,17 @@ let cloudReady = false;
 const lastKnownValues =
   new Map();
 
+function finishSpendItCloudLoading(user) {
+  if (
+    !user ||
+    currentUser?.uid === user.uid
+  ) {
+    window
+      .finishWorthItCloudLoading
+      ?.();
+  }
+}
+
 function normalizeCloudValue(value) {
   if (value === null) {
     return null;
@@ -163,10 +174,6 @@ watchAuthState(async user => {
   currentUser = user;
   cloudReady = false;
 
-  window
-  .finishWorthItCloudLoading
-  ?.();
-
   if (!user) {
     lastKnownValues.clear();
     
@@ -180,8 +187,14 @@ watchAuthState(async user => {
 
     window.reloadSpendItFromStorage?.();
 
+    finishSpendItCloudLoading(user);
+
     return;
   }
+
+  window
+    .showWorthItCloudLoading
+    ?.();
 
   try {
     await loadSpendItForUser(user);
@@ -195,8 +208,7 @@ watchAuthState(async user => {
       "SpendIt cloud load failed:",
       error
     );
-    window
-  .finishWorthItCloudLoading
-  ?.();
+  } finally {
+    finishSpendItCloudLoading(user);
   }
 });
