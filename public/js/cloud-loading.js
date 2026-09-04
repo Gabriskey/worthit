@@ -1,5 +1,6 @@
 const CLOUD_LOADING_APPS =
   new Set([
+    "home",
     "earnit",
     "spendit",
     "planit",
