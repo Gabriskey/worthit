@@ -223,9 +223,18 @@ watchAuthState(async user => {
       .reloadEarnItFromStorage
       ?.();
 
+    window
+      .finishWorthItCloudLoading
+      ?.();
+
 
     return;
   }
+
+
+  window
+    .showWorthItCloudLoading
+    ?.();
 
 
   try {
@@ -239,16 +248,15 @@ watchAuthState(async user => {
       `EarnIt loaded for ${user.email}`
     );
 
-    window
-  .finishWorthItCloudLoading
-  ?.();
-
   } catch (error) {
 
     console.error(
       "EarnIt cloud load failed:",
       error
     );
-
+  } finally {
+    window
+      .finishWorthItCloudLoading
+      ?.();
   }
 });
