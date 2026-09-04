@@ -515,9 +515,12 @@
     document.getElementById("dashNetWorth").textContent = formatCurrency(netWorth)
     document.getElementById("dashBurn").textContent = formatCurrency(burn)
 
+    const today = new Date()
+    const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`
+
     const upcoming = currentEntries
-      .filter(item => item.date)
-      .sort((a, b) => new Date(a.date) - new Date(b.date))[0]
+      .filter(item => item.date && item.date >= todayKey)
+      .sort((a, b) => a.date.localeCompare(b.date))[0]
 
     document.getElementById("dashUpcoming").textContent = upcoming
       ? `${upcoming.label || "Payment"} · ${formatCurrency(upcoming.amount)}`
