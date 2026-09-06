@@ -696,6 +696,12 @@ function deletePlannerItem() {
     return
   }
 
+  const item = data[month][index]
+
+  if (item.wishlistId) {
+    clearWishlistPlannerLink(item.wishlistId)
+  }
+
   data[month].splice(index, 1)
 
   saveData(data)

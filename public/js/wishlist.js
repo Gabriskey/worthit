@@ -2189,5 +2189,6 @@ window.reloadPlanItWishlistFromStorage =
         viewFallback
     }
 
+    getSyncedWishlistItems()
     initWishlistPage()
   }
