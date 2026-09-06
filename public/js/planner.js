@@ -378,7 +378,14 @@ function updateField(m, i, f, v) {
 
   if (f === "amount") {
     const n = parseFloat(String(v).replace(/[^\d.-]/g, ""))
-    d[m][i].amount = isNaN(n) ? 0 : n
+
+    if (isNaN(n) || n <= 0) {
+      showToast("Amount must be greater than 0.")
+      render()
+      return
+    }
+
+    d[m][i].amount = n
   } else if (f === "label") {
     d[m][i][f] = cap(v.trim())
   } else if (f === "date") {
@@ -463,7 +470,7 @@ function addGlobal(){
     hasError = true
   }
 
-  if(isNaN(a)){
+  if(isNaN(a) || a <= 0){
     amountInput.classList.add("invalid")
     hasError = true
   }
@@ -474,7 +481,11 @@ function addGlobal(){
   }
 
   if(hasError){
-    showToast("Please enter a label, amount, and select at least one month")
+    showToast(
+      a <= 0
+        ? "Amount must be greater than 0."
+        : "Please enter a label, amount, and select at least one month"
+    )
     return
   }
 
@@ -521,7 +532,7 @@ function addMonthly() {
     hasError = true
   }
 
-  if (isNaN(amount)) {
+  if (isNaN(amount) || amount <= 0) {
     amountInput.classList.add("invalid")
     hasError = true
   }
@@ -537,7 +548,11 @@ function addMonthly() {
   }
 
   if (hasError) {
-    showToast("Please fill all fields correctly")
+    showToast(
+      amount <= 0
+        ? "Amount must be greater than 0."
+        : "Please fill all fields correctly"
+    )
     return
   }
 
@@ -1017,6 +1032,12 @@ function addPayoff() {
     return
   }
 
+  if (monthly < 0) {
+    showToast("Monthly payment cannot be negative.")
+    monthlyInput.focus()
+    return
+  }
+
   if (paid < 0) {
     showToast("Paid amount cannot be negative.")
     paidInput.focus()
@@ -1096,6 +1117,17 @@ function updatePayoffField(id, key, value) {
     }
 
     item.total = nextTotal
+  } else if (key === "monthly") {
+    const nextMonthly =
+      Number(String(value || "").replace(/[^0-9.-]/g, "")) || 0
+
+    if (nextMonthly < 0) {
+      showToast("Monthly payment cannot be negative.")
+      renderPayoffTracker()
+      return
+    }
+
+    item.monthly = nextMonthly
   } else {
     item[key] = Number(String(value || "").replace(/[^0-9.]/g, "")) || 0
   }

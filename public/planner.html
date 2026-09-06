@@ -17,7 +17,7 @@
   <h3 style="margin-bottom:1.5rem;">Add Recurring Expense</h3>
   <div class="row">
     <input id="gLabel" placeholder="Expense label" data-testid="planner-global-label-input">
-    <input id="gAmount" type="number" placeholder="Amount" data-testid="planner-global-amount-input">
+    <input id="gAmount" type="number" min="0.01" placeholder="Amount" data-testid="planner-global-amount-input">
   </div>
 
   <div class="form-group">
@@ -161,7 +161,7 @@
     </div>
 
     <div class="form-group">
-      <input id="payoffMonthly" type="number" placeholder="Monthly payment">
+      <input id="payoffMonthly" type="number" min="0" placeholder="Monthly payment">
     </div>
 
     <div class="form-group">
