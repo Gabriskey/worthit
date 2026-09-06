@@ -265,7 +265,13 @@ function updateSavingsField(id, key, value) {
 
 if (key === "saved") {
   const nextSaved =
-    Number(String(value || "").replace(/[^0-9.]/g, "")) || 0
+    Number(String(value || "").replace(/[^0-9.-]/g, "")) || 0
+
+  if (nextSaved < 0) {
+    showToast("Amount saved cannot be negative.")
+    renderSavingsPage()
+    return
+  }
 
   const accountId = String(goal.accountId || "")
 
