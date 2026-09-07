@@ -29,45 +29,6 @@ function loadSpendItRecordsForNetWorth() {
   }
 }
 
-function calculateSpendItAccountBalance(account, records) {
-  let balance = Number(account?.initial || 0)
-
-  records.forEach(record => {
-    const amount = Number(record.amount || 0)
-
-    if (
-      record.type === "income" &&
-      record.accountId === account.id
-    ) {
-      balance += amount
-    }
-
-    if (
-      record.type === "expense" &&
-      record.accountId === account.id
-    ) {
-      balance -= amount
-    }
-
-    if (record.type === "transfer") {
-      if (record.fromId === account.id) balance -= amount
-      if (record.toId === account.id) balance += amount
-    }
-  })
-
-  return balance
-}
-
-function getSpendItBalancesForNetWorth() {
-  const accounts = loadSpendItAccountsForNetWorth()
-  const records = loadSpendItRecordsForNetWorth()
-
-  return accounts.map(account => ({
-    ...account,
-    balance: calculateSpendItAccountBalance(account, records)
-  }))
-}
-
 function loadSavingsGoalsForNetWorth() {
   try {
     const raw = JSON.parse(localStorage.getItem(SAVINGS_KEY) || "[]")
@@ -118,21 +79,24 @@ function renderNetWorthList(id, items, emptyText) {
 function renderNetWorthPage() {
   const savings = loadSavingsGoalsForNetWorth()
   const wishlist = loadWishlistItemsForNetWorth()
-  const payoffStats = getPayoffStats()
-
-  const spendItAccounts = getSpendItBalancesForNetWorth()
-
-const totalSpendItBalance = spendItAccounts.reduce(
-  (sum, account) => sum + Number(account.balance || 0),
-  0
-)
+  const today = new Date()
+  const netWorthCalculation = WorthItNetWorthCalculator.calculateNetWorth({
+    accounts: loadSpendItAccountsForNetWorth(),
+    records: loadSpendItRecordsForNetWorth(),
+    financePlanner: loadData(),
+    payoffs: loadPayoffs(),
+    asOfDate: `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`
+  })
+  const payoffStats = netWorthCalculation.payoffStats
+  const spendItAccounts = netWorthCalculation.accountBalances
+  const totalSpendItBalance = netWorthCalculation.totalAccountBalances
 
   const totalSavings = savings.reduce((sum, goal) => sum + Number(goal.saved || 0), 0)
   const wishlistValue = wishlist.reduce((sum, item) => sum + Number(item.price || 0), 0)
   const plannerBurn = getCurrentMonthPlannerTotal()
   const monthlyBurn = plannerBurn + payoffStats.monthlyDue
 
-  const netWorth = totalSpendItBalance - payoffStats.totalRemaining
+  const netWorth = netWorthCalculation.netWorth
 
   setMoney("netWorthTotal", netWorth)
   setMoney("nwSavings", totalSpendItBalance)

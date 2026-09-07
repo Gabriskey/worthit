@@ -130,104 +130,34 @@ function normalizePayoff(item = {}) {
     entryCount: Number(item.entryCount || 0)
   }
 }
+
+function getCurrentLocalDateKey() {
+  const today = new Date()
+
+  return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`
+}
+
 function getRecurringPlannerPayoffs() {
-  const data = loadData()
-  const grouped = {}
-
-  const currentMonthIndex = new Date().getMonth()
-
-Object.entries(data).forEach(([month, entries]) => {
-  const monthIndex = months.indexOf(month)
-  if (monthIndex < currentMonthIndex) return
-    if (!Array.isArray(entries)) return
-
-    entries.forEach(entry => {
-      const label = String(entry.label || "").trim()
-      if (!label) return
-
-      const key = label.toLowerCase()
-      const amount = Number(entry.amount || 0)
-      const total = Number(entry.installmentTotal || 0)
-
-      if (!grouped[key]) {
-        grouped[key] = {
-          id: `planner_${key.replace(/[^a-z0-9]+/g, "_")}`,
-          name: label,
-          total: 0,
-          paid: 0,
-          monthly: amount,
-          dueDay: entry.date ? Number(String(entry.date).split("-")[2]) : 1,
-          category: "Planner Installment",
-          source: "planner",
-          months: new Set(),
-          entryCount: 0
-        }
-      }
-
-      grouped[key].months.add(month)
-      grouped[key].entryCount += 1
-
-      if (amount > grouped[key].monthly) grouped[key].monthly = amount
-      if (total > grouped[key].total) grouped[key].total = total
-    })
-  })
-
-  return Object.values(grouped)
-    .filter(item => item.months.size >= 2)
-    .map(item => {
-      const estimatedTotal = item.total > 0 ? item.total : item.monthly * item.entryCount
-
-      return normalizePayoff({
-        ...item,
-        total: estimatedTotal
-      })
-    })
+  return WorthItNetWorthCalculator.getRecurringPlannerPayoffs(
+    loadData(),
+    getCurrentLocalDateKey()
+  )
 }
 
 function getCombinedPayoffs() {
-  const manualPayoffs = loadPayoffs().map(normalizePayoff)
-  const plannerPayoffs = getRecurringPlannerPayoffs()
-
-  const manualNames = new Set(
-    manualPayoffs.map(item => item.name.toLowerCase().trim())
-  )
-
-  const filteredPlannerPayoffs = plannerPayoffs.filter(item => {
-    return !manualNames.has(item.name.toLowerCase().trim())
+  return WorthItNetWorthCalculator.getCombinedPayoffs({
+    financePlanner: loadData(),
+    payoffs: loadPayoffs(),
+    asOfDate: getCurrentLocalDateKey()
   })
-
-  return [...manualPayoffs, ...filteredPlannerPayoffs]
 }
+
 function getPayoffStats() {
-  const payoffs = getCombinedPayoffs().map(p => {
-    const remaining = Math.max(Number(p.total || 0) - Number(p.paid || 0), 0)
-
-    return {
-      ...p,
-      effectiveMonthlyDue:
-        p.source !== "planner" && remaining <= 0
-          ? 0
-          : Number(p.monthly || 0)
-    }
+  return WorthItNetWorthCalculator.calculatePayoffStats({
+    financePlanner: loadData(),
+    payoffs: loadPayoffs(),
+    asOfDate: getCurrentLocalDateKey()
   })
-
-  const totalOriginal = payoffs.reduce((sum, p) => sum + Number(p.total || 0), 0)
-  const totalPaid = payoffs.reduce((sum, p) => sum + Number(p.paid || 0), 0)
-  const totalRemaining = payoffs.reduce((sum, p) => {
-    return sum + Math.max(Number(p.total || 0) - Number(p.paid || 0), 0)
-  }, 0)
-  const monthlyDue = payoffs.reduce((sum, p) => sum + p.effectiveMonthlyDue, 0)
-  const entryCount = payoffs.reduce((sum, p) => sum + Number(p.entryCount || 1), 0)
-
-  return {
-    payoffs,
-    totalOriginal,
-    totalPaid,
-    totalRemaining,
-    monthlyDue,
-    activeCount: payoffs.length,
-    entryCount
-  }
 }
 
 document.addEventListener('DOMContentLoaded', () => {

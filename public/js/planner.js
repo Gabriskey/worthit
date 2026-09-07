@@ -1290,7 +1290,7 @@ list.innerHTML = stats.payoffs.map(item => {
     <div class="payoff-row-compact">
       <div class="payoff-row-main">
         <strong>${item.name || "Payoff Item"}</strong>
-        <span>${category}</span>
+        <span>${category}${item.source === "planner" ? " · Managed by Planner" : ""}</span>
       </div>
 
       <div class="payoff-row-stat">

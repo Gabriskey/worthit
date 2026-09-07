@@ -224,6 +224,16 @@
     </div>
 
   <section class="summary-grid" style="padding:0; margin-bottom:2rem;">
+    <a href="spendit/" class="summary-card total" style="text-decoration:none;">
+      <span class="label">TOTAL ACCOUNT BALANCES</span>
+      <div class="value"><span id="dashAccountBalances">₱0</span></div>
+    </a>
+
+    <a href="planner.html" class="summary-card high" style="text-decoration:none;">
+      <span class="label">REMAINING LIABILITIES</span>
+      <div class="value"><span id="dashLiabilities">₱0</span></div>
+    </a>
+
     <a href="networth.html" class="summary-card total" style="text-decoration:none;">
       <span class="label">NET WORTH</span>
       <div class="value"><span id="dashNetWorth">₱0</span></div>
@@ -445,6 +455,7 @@
 
   </main>
 
+  <script src="js/networth-calculator.js"></script>
   <script src="js/shared.js"></script>
   <script src="js/worthit-modal.js"></script>
   <script src="js/worthit-shell.js"></script>
@@ -467,57 +478,34 @@
     }
   }
 
-  function getTotalSpendItBalance() {
-    const accounts = readArray(SPENDIT_ACCOUNT_KEY)
-    const records = readArray(SPENDIT_RECORD_KEY)
-
-    return accounts.reduce((total, account) => {
-      let balance = Number(account?.initial || 0)
-
-      records.forEach(record => {
-        const amount = Number(record.amount || 0)
-
-        if (
-          record.type === "income" &&
-          record.accountId === account.id
-        ) {
-          balance += amount
-        }
-
-        if (
-          record.type === "expense" &&
-          record.accountId === account.id
-        ) {
-          balance -= amount
-        }
-
-        if (record.type === "transfer") {
-          if (record.fromId === account.id) balance -= amount
-          if (record.toId === account.id) balance += amount
-        }
-      })
-
-      return total + balance
-    }, 0)
-  }
-
   function renderDashboard() {
     const wishlist = readArray(WISHLIST_KEY)
     const plannerData = loadData()
-    const payoffStats = getPayoffStats()
-
-    const currentMonth = months[new Date().getMonth()]
-    const currentEntries = plannerData[currentMonth] || []
-
-    const totalSpendItBalance = getTotalSpendItBalance()
-    const netWorth = totalSpendItBalance - payoffStats.totalRemaining
-    const burn = currentEntries.reduce((sum, item) => sum + Number(item.amount || 0), 0) + payoffStats.monthlyDue
-
-    document.getElementById("dashNetWorth").textContent = formatCurrency(netWorth)
-    document.getElementById("dashBurn").textContent = formatCurrency(burn)
-
     const today = new Date()
     const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`
+    const netWorthCalculation = WorthItNetWorthCalculator.calculateNetWorth({
+      accounts: readArray(SPENDIT_ACCOUNT_KEY),
+      records: readArray(SPENDIT_RECORD_KEY),
+      financePlanner: plannerData,
+      payoffs: loadPayoffs(),
+      asOfDate: todayKey
+    })
+    const payoffStats = netWorthCalculation.payoffStats
+
+    const currentMonth = months[today.getMonth()]
+    const currentEntries = plannerData[currentMonth] || []
+
+    const netWorth = netWorthCalculation.netWorth
+    const burn = currentEntries.reduce((sum, item) => sum + Number(item.amount || 0), 0) + payoffStats.monthlyDue
+
+    document.getElementById("dashAccountBalances").textContent = formatCurrency(
+      netWorthCalculation.totalAccountBalances
+    )
+    document.getElementById("dashLiabilities").textContent = formatCurrency(
+      netWorthCalculation.remainingLiabilities
+    )
+    document.getElementById("dashNetWorth").textContent = formatCurrency(netWorth)
+    document.getElementById("dashBurn").textContent = formatCurrency(burn)
 
     const upcoming = currentEntries
       .filter(item => item.date && item.date >= todayKey)
