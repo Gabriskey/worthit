@@ -2511,9 +2511,27 @@ try {
     error
   );
 
-  alert(
-    "The EarnIt entry was saved, but the SpendIt income could not be synced."
+  const shouldRetry = confirm(
+    "The EarnIt entry was saved, but the SpendIt income could not be synced.\n\nRetry SpendIt sync now?"
   );
+
+  if (shouldRetry) {
+    try {
+      await window
+        .syncEarnItEntryToSpendIt(
+          newEntry
+        );
+    } catch (retryError) {
+      console.error(
+        "Could not retry EarnIt income sync to SpendIt:",
+        retryError
+      );
+
+      alert(
+        "SpendIt sync failed again. Your EarnIt entry is still saved. You can retry later by editing and saving the EarnIt entry again."
+      );
+    }
+  }
 
 }
   form.reset();
