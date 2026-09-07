@@ -171,6 +171,7 @@
 
 <div class="wishlist-table" id="wishlistSection" style="display:none;">
 <div class="wishlist-table-header">
+  <div onclick="setWishlistSort('dateAdded')">DATE ADDED</div>
   <div onclick="setWishlistSort('name')">NAME</div>
   <div onclick="setWishlistSort('price')">PRICE</div>
 <div onclick="setWishlistSort('priority')">PRIORITY</div>
@@ -223,6 +224,11 @@
 
     <div class="form-group">
       <select id="wishlistCollection" class="wishlist-inline-select" data-testid="wishlist-collection-select"></select>
+    </div>
+
+    <div class="form-group">
+      <label for="wishlistPlannerDate">Planner Date (optional)</label>
+      <input id="wishlistPlannerDate" type="date" data-testid="wishlist-planner-date-input">
     </div>
 
     <div class="form-group">

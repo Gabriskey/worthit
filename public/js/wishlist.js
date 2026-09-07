@@ -44,6 +44,7 @@ let plannerDeleteTarget = null
 let wishlistPlannerTargetId = null
 let wishlistPlannerAction = "copy"
 let wishlistPrioritySortDelayTimer = null
+const UNASSIGNED_COLLECTION_FILTER = "__unassigned__"
 
 function safeRenderPlanner() {
   if (typeof render === "function") {
@@ -65,6 +66,7 @@ priority: ["low", "medium", "high"].includes(item.priority) ? item.priority : "l
     plannedMonth: item.plannedMonth || "",
     plannedDate: item.plannedDate || "",
     plannerEntryId: item.plannerEntryId || "",
+    dateAdded: item.dateAdded || "",
     purchasedAt: item.purchasedAt || ""
   }
 }
@@ -312,6 +314,9 @@ function migrateLegacyWishlistData() {
       plannerEntryId:
         item.plannerEntryId || "",
 
+      dateAdded:
+        item.dateAdded || "",
+
       collectionId:
         item.collectionId || ""
     }))
@@ -353,16 +358,14 @@ function populateWishlistCollectionsSelect() {
 
   const collections = loadWishlistCollections()
 
-  if (!collections.length) {
-    select.innerHTML = `<option value="">No wishlists yet</option>`
-    return
-  }
-
-  select.innerHTML = collections.map(collection => `
+  select.innerHTML = `
+    <option value="">No wishlist (optional)</option>
+    ${collections.map(collection => `
     <option value="${collection.id}">
       ${collection.symbol} ${cap(collection.name)}
     </option>
-  `).join("")
+    `).join("")}
+  `
 }
 
 function populateWishlistCollectionFilter() {
@@ -373,6 +376,7 @@ function populateWishlistCollectionFilter() {
 
   select.innerHTML = `
     <option value="all">All Wishlists</option>
+    <option value="${UNASSIGNED_COLLECTION_FILTER}">Unassigned</option>
     ${collections.map(collection => `
       <option value="${collection.id}">
         ${collection.symbol} ${cap(collection.name)}
@@ -399,17 +403,20 @@ function createWishlistCollection() {
   }
 
   const collections = loadWishlistCollections()
-  collections.push(normalizeWishlistCollection({
+  const newCollection = normalizeWishlistCollection({
     id: `collection_${Date.now()}`,
     name,
     symbol,
     notes
-  }))
+  })
+  collections.push(newCollection)
 
   saveWishlistCollections(collections)
   closeCreateCollectionModal()
   populateWishlistCollectionsSelect()
   populateWishlistCollectionFilter()
+  const wishlistCollectionSelect = document.getElementById("wishlistCollection")
+  if (wishlistCollectionSelect) wishlistCollectionSelect.value = newCollection.id
   renderWishlist()
   showToast(`${name} wishlist created!`)
 
@@ -551,17 +558,12 @@ function addItem() {
   const collectionInput = document.getElementById("wishlistCollection")
   const priceInput = document.getElementById("wishlistPrice")
   const linkInput = document.getElementById("wishlistLink")
+  const plannerDateInput = document.getElementById("wishlistPlannerDate")
 
   const name = nameInput.value.trim()
   const priority = priorityInput.value
   const collectionId = collectionInput.value
-
-  if (!collectionId) {
-  showToast("Create a wishlist first")
-  closeWishlistModal()
-  openCreateCollectionModal()
-  return
-}
+  const plannerDate = String(plannerDateInput?.value || "").trim()
   const price = Number(String(priceInput.value || "").replace(/[^0-9.]/g, "")) || 0
   const link = normalizeWishlistLink(linkInput.value)
 
@@ -571,27 +573,58 @@ function addItem() {
     return
   }
 
-  const items = loadWishlistItems()
+  if (plannerDate && !isValidWishlistDate(plannerDate)) {
+    showToast("Please choose a valid Planner Date")
+    plannerDateInput?.focus()
+    return
+  }
 
-  items.push(normalizeWishlistItem({
+  const items = loadWishlistItems()
+  const newItem = normalizeWishlistItem({
     id: String(Date.now()),
     name,
     priority,
     collectionId,
     price,
-    link
-  }))
+    link,
+    dateAdded: toDateInputValue(new Date())
+  })
+
+  items.push(newItem)
 
   saveWishlistItems(items)
-renderWishlist()
-closeWishlistModal()
-showToast(`${name} added!`)
+  nameInput.value = ""
+  priorityInput.value = "low"
+  collectionInput.selectedIndex = 0
+  priceInput.value = ""
+  linkInput.value = ""
+  if (plannerDateInput) plannerDateInput.value = ""
+  closeWishlistModal()
 
-nameInput.value = ""
-priorityInput.value = "low"
-collectionInput.selectedIndex = 0
-priceInput.value = ""
-linkInput.value = ""
+  if (!collectionId) {
+    wishlistViewState.screenMode = "table"
+    wishlistViewState.activeCollectionId = ""
+    wishlistFilterState.collectionId = "all"
+    saveWishlistViewState()
+    saveWishlistFilterState()
+  }
+
+  if (plannerDate) {
+    wishlistPlannerTargetId = newItem.id
+
+    try {
+      addWishlistItemToPlannerDate(plannerDate)
+    } catch (error) {
+      console.error("Could not add Wishlist item to Planner:", error)
+      wishlistPlannerTargetId = null
+      renderWishlist()
+      showToast(`${name} was added, but could not be added to Planner.`)
+    }
+    return
+  }
+
+  renderWishlist()
+  showToast(`${name} added!`)
 }
 
 function updateWishlistStats(items) {
@@ -683,6 +716,7 @@ function filterWishlistItems(items) {
 
     const matchesCollection =
       wishlistFilterState.collectionId === "all" ||
+      (wishlistFilterState.collectionId === UNASSIGNED_COLLECTION_FILTER && !item.collectionId) ||
       item.collectionId === wishlistFilterState.collectionId
 
     const matchesActiveCollection =
@@ -709,6 +743,24 @@ function formatWishlistPlannedDate(item) {
   }
 
   return item.plannedMonth || ""
+}
+
+function isValidWishlistDate(value) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false
+
+  const date = getLocalDate(value)
+  return !Number.isNaN(date.getTime()) && toDateInputValue(date) === value
+}
+
+function formatWishlistDateAdded(item) {
+  const value = String(item.dateAdded || "")
+  if (!isValidWishlistDate(value)) return "—"
+
+  return getLocalDate(value).toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric"
+  })
 }
 
 function formatWishlistPriority(priority) {
@@ -885,6 +937,23 @@ function sortWishlistItems(items) {
     let x
     let y
 
+    if (wishlistSortState.column === "dateAdded") {
+      const aDate = isValidWishlistDate(String(a.dateAdded || ""))
+        ? a.dateAdded
+        : ""
+      const bDate = isValidWishlistDate(String(b.dateAdded || ""))
+        ? b.dateAdded
+        : ""
+
+      if (!aDate && !bDate) return 0
+      if (!aDate) return 1
+      if (!bDate) return -1
+
+      return wishlistSortState.direction === "asc"
+        ? aDate.localeCompare(bDate)
+        : bDate.localeCompare(aDate)
+    }
+
     if (wishlistSortState.column === "price") {
       x = Number(a.price || 0)
       y = Number(b.price || 0)
@@ -926,7 +995,9 @@ function updateWishlistToolbar() {
     activeParts.push(`Priority: <strong>${formatWishlistPriority(wishlistFilterState.priority)}</strong>`)
   }
 
-  if (wishlistFilterState.collectionId && wishlistFilterState.collectionId !== "all") {
+  if (wishlistFilterState.collectionId === UNASSIGNED_COLLECTION_FILTER) {
+    activeParts.push("Wishlist: <strong>Unassigned</strong>")
+  } else if (wishlistFilterState.collectionId && wishlistFilterState.collectionId !== "all") {
     activeParts.push(`Wishlist: <strong>${cap(getCollectionName(wishlistFilterState.collectionId))}</strong>`)
   }
 
@@ -1048,6 +1119,15 @@ function openWishlistCollection(collectionId) {
   renderWishlist()
 }
 
+function openUnassignedWishlistItems() {
+  wishlistViewState.screenMode = "table"
+  wishlistViewState.activeCollectionId = ""
+  wishlistFilterState.collectionId = UNASSIGNED_COLLECTION_FILTER
+  saveWishlistViewState()
+  saveWishlistFilterState()
+  renderWishlist()
+}
+
 function backToCollectionsView() {
   wishlistViewState.activeCollectionId = ""
   wishlistViewState.screenMode = "collections"
@@ -1076,15 +1156,43 @@ function renderWishlistCollections(items) {
   const styleClass = wishlistViewState.displayStyle || "small"
 
   const collections = loadWishlistCollections()
+  const unassignedItems = items.filter(item => {
+    return !item.collectionId && item.status !== "purchased"
+  })
+  const unassignedCard = unassignedItems.length
+    ? `
+      <button
+        type="button"
+        class="wishlist-collection-card ${styleClass}"
+        onclick="openUnassignedWishlistItems()"
+      >
+        <div class="wishlist-collection-main">
+          <div>
+            <div class="wishlist-collection-name">Unassigned</div>
+            <div class="wishlist-collection-meta">
+              open wishes ${unassignedItems.length}
+            </div>
+            <div class="wishlist-collection-total">
+              total ${formatCurrency(unassignedItems.reduce((sum, item) => sum + Number(item.price || 0), 0))}
+            </div>
+          </div>
+
+          <div class="wishlist-collection-symbol-wrap">
+            <span class="wishlist-collection-symbol">☆</span>
+          </div>
+        </div>
+      </button>
+    `
+    : ""
 
   grid.className = `wishlist-collections-grid ${styleClass}`
 
   if (!collections.length) {
     if (header) header.style.display = "none"
 
-    grid.innerHTML = `
+    grid.innerHTML = unassignedCard || `
       <div class="wishlist-table-empty">
-        No collections yet. Create your first Wishlist to start planning.
+        No collections yet. Add a wish or create your first Wishlist.
       </div>
     `
     return
@@ -1127,7 +1235,7 @@ function renderWishlistCollections(items) {
           </div>
         </button>
       `
-    }).join("")
+    }).join("") + unassignedCard
 
     return
   }
@@ -1314,6 +1422,8 @@ const safeLink = item.link
 
     return `
       <div class="wishlist-table-row ${item.status === "purchased" ? "is-purchased" : ""}">
+        <div>${formatWishlistDateAdded(item)}</div>
+
         <div class="wishlist-editable" contenteditable="true" onblur="updateWishlistItem('${item.id}', 'name', this.innerText)">
           ${item.name}
         </div>
