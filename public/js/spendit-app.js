@@ -1828,6 +1828,12 @@ function editRecord(id){
   const record = records.find(r => r.id === id);
   if (!record || record.type === 'transfer') return;
 
+  if (record.source === 'earnit') {
+    return alert(
+      'This income is linked to EarnIt. Edit it from EarnIt instead.'
+    );
+  }
+
   editingRecordId = id;
   amountBuffer = String(record.amount || '');
 
@@ -1849,6 +1855,12 @@ function editRecord(id){
 function deleteRecord(id){
   const record = records.find(r => r.id === id);
   if (!record) return;
+
+  if (record.source === 'earnit') {
+    return alert(
+      'This income is linked to EarnIt. Delete it from EarnIt instead.'
+    );
+  }
 
   openDeleteModal(
     'Delete this record?',
