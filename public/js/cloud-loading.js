@@ -4,6 +4,7 @@ const CLOUD_LOADING_APPS =
     "earnit",
     "spendit",
     "planit",
+    "wishlist",
     "saveit",
     "ownit"
   ]);

@@ -1927,7 +1927,7 @@ function removeEntry(id) {
     clean.id;
 
   deleteEntryModalText.textContent =
-    `Delete "${clean.job}" — ${formatPeso(clean.salary)} from EarnIt?`;
+    `Delete "${clean.job}" — ${formatPeso(clean.salary)} from Income?`;
 
   const hasSpendItLink =
     Boolean(
@@ -2028,7 +2028,7 @@ async function confirmDeleteEntry() {
       );
 
       alert(
-        "The SpendIt income could not be deleted, so the EarnIt entry was kept."
+        "The linked income record could not be deleted, so the Income entry was kept."
       );
 
       return;
@@ -2113,7 +2113,7 @@ async function saveCompanyEdits() {
       );
 
       alert(
-        "The linked SpendIt incomes could not be updated, so the company was not renamed."
+        "The linked income records could not be updated, so the company was not renamed."
       );
 
       return;
@@ -2512,7 +2512,7 @@ try {
   );
 
   const shouldRetry = confirm(
-    "The EarnIt entry was saved, but the SpendIt income could not be synced.\n\nRetry SpendIt sync now?"
+    "The Income entry was saved, but the linked Spending income could not be synced.\n\nRetry Spending sync now?"
   );
 
   if (shouldRetry) {
@@ -2528,7 +2528,7 @@ try {
       );
 
       alert(
-        "SpendIt sync failed again. Your EarnIt entry is still saved. You can retry later by editing and saving the EarnIt entry again."
+        "Spending sync failed again. Your Income entry is still saved. You can retry later by editing and saving the Income entry again."
       );
     }
   }

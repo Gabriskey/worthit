@@ -94,7 +94,7 @@ function populateSavingsAccountSelect() {
   placeholder.value = ""
   placeholder.textContent = accounts.length
     ? "Choose where this savings is stored"
-    : "No SpendIt accounts found"
+    : "No Spending accounts found"
 
   select.appendChild(placeholder)
 
@@ -194,7 +194,7 @@ function addSavingsGoal() {
   }
 
   if (!accountId) {
-  showToast("Please choose a SpendIt account")
+  showToast("Please choose a Spending account")
   accountInput?.focus()
   return
 }
@@ -204,7 +204,7 @@ function addSavingsGoal() {
   const accountBalance = getSpendItBalanceForSavings(accountId)
 
 if (accountBalance === null) {
-  showToast("Selected SpendIt account was not found")
+  showToast("Selected Spending account was not found")
   return
 }
 
@@ -276,7 +276,7 @@ if (key === "saved") {
   const accountId = String(goal.accountId || "")
 
   if (!accountId) {
-    showToast("This goal has no SpendIt account assigned")
+    showToast("This goal has no Spending account assigned")
     renderSavingsPage()
     return
   }
@@ -284,7 +284,7 @@ if (key === "saved") {
   const accountBalance = getSpendItBalanceForSavings(accountId)
 
   if (accountBalance === null) {
-    showToast("Linked SpendIt account was not found")
+    showToast("Linked Spending account was not found")
     renderSavingsPage()
     return
   }

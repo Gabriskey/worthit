@@ -7,15 +7,15 @@
   const THEME_KEY = "worthit-theme"
 const APP_CONFIG = {
   home: {
-    name: "Home",
+    name: "Dashboard",
     pages: []
   },
 
   earnit: {
-    name: "EarnIt",
+    name: "Income",
     pages: [
       {
-        label: "Home",
+        label: "Dashboard",
         pageId: "homePage"
       },
       {
@@ -30,10 +30,10 @@ const APP_CONFIG = {
   },
 
   spendit: {
-    name: "SpendIt",
+    name: "Spending",
     pages: [
       {
-        label: "Home",
+        label: "Dashboard",
         pageId: "dashboardPage"
       },
       {
@@ -48,17 +48,22 @@ const APP_CONFIG = {
   },
 
   planit: {
-    name: "PlanIt",
+    name: "Planner",
+    pages: []
+  },
+
+  wishlist: {
+    name: "Wishlist",
     pages: []
   },
 
   saveit: {
-    name: "SaveIt",
+    name: "Savings",
     pages: []
   },
 
   ownit: {
-    name: "OwnIt",
+    name: "Net Worth",
     pages: []
   }
 }
@@ -66,32 +71,37 @@ const APP_CONFIG = {
   const MAIN_NAV = [
     {
       key: "home",
-      label: "Home",
+      label: "Dashboard",
       path: "index.html"
     },
     {
       key: "earnit",
-      label: "EarnIt",
+      label: "Income",
       path: "earnit/index.html"
     },
     {
       key: "spendit",
-      label: "SpendIt",
+      label: "Spending",
       path: "spendit/index.html"
     },
     {
+      key: "wishlist",
+      label: "Wishlist",
+      path: "wishlist.html"
+    },
+    {
       key: "planit",
-      label: "PlanIt",
+      label: "Planner",
       path: "planner.html"
     },
     {
       key: "saveit",
-      label: "SaveIt",
+      label: "Savings",
       path: "savings.html"
     },
     {
       key: "ownit",
-      label: "OwnIt",
+      label: "Net Worth",
       path: "networth.html"
     }
   ]

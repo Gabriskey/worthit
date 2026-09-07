@@ -1830,7 +1830,7 @@ function editRecord(id){
 
   if (record.source === 'earnit') {
     return alert(
-      'This income is linked to EarnIt. Edit it from EarnIt instead.'
+      'This income record is linked to Income. Edit it from Income instead.'
     );
   }
 
@@ -1858,7 +1858,7 @@ function deleteRecord(id){
 
   if (record.source === 'earnit') {
     return alert(
-      'This income is linked to EarnIt. Delete it from EarnIt instead.'
+      'This income record is linked to Income. Delete it from Income instead.'
     );
   }
 

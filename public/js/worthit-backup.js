@@ -40,11 +40,11 @@ const BACKUP_AREAS = Object.freeze({
 })
 
 const AREA_LABELS = Object.freeze({
-  earnit: "EarnIt",
-  spendit: "SpendIt",
-  planit: "PlanIt",
+  earnit: "Income",
+  spendit: "Spending",
+  planit: "Planner",
   wishlist: "Wishlist",
-  saveit: "SaveIt",
+  saveit: "Savings",
   preferences: "Preferences"
 })
 
@@ -752,15 +752,15 @@ function createRelationshipBlockers(collections, selectedAreas, mode) {
         ["income", "expense"].includes(record.type) &&
         !accountIds.has(String(record.accountId || ""))
       ) {
-        addBlocker(`SpendIt record ${id} has no resolvable account.`)
+        addBlocker(`Spending record ${id} has no resolvable account.`)
       }
 
       if (record.type === "transfer") {
         if (!accountIds.has(String(record.fromId || ""))) {
-          addBlocker(`SpendIt transfer ${id} has no resolvable source account.`)
+          addBlocker(`Spending transfer ${id} has no resolvable source account.`)
         }
         if (!accountIds.has(String(record.toId || ""))) {
-          addBlocker(`SpendIt transfer ${id} has no resolvable destination account.`)
+          addBlocker(`Spending transfer ${id} has no resolvable destination account.`)
         }
       }
     })
@@ -780,7 +780,7 @@ function createRelationshipBlockers(collections, selectedAreas, mode) {
       if (!accountId && !recordId) return
 
       if (!accountId || !recordId) {
-        addBlocker(`EarnIt entry ${entryId} has an incomplete SpendIt link.`)
+        addBlocker(`Income entry ${entryId} has an incomplete Spending link.`)
         return
       }
 
@@ -793,7 +793,7 @@ function createRelationshipBlockers(collections, selectedAreas, mode) {
         String(record.earnItEntryId || "") !== entryId ||
         String(record.accountId || "") !== accountId
       ) {
-        addBlocker(`EarnIt entry ${entryId} has no proven matching SpendIt income.`)
+        addBlocker(`Income entry ${entryId} has no proven matching Spending income.`)
       }
     })
   }
@@ -814,7 +814,7 @@ function createRelationshipBlockers(collections, selectedAreas, mode) {
           String(entry.spendItRecordId || "") !== recordId ||
           String(entry.spendItAccountId || "") !== String(record.accountId || "")
         ) {
-          addBlocker(`EarnIt-linked SpendIt record ${recordId} has no proven matching EarnIt entry.`)
+          addBlocker(`Income-linked Spending record ${recordId} has no proven matching Income entry.`)
         }
       })
   }
@@ -828,7 +828,7 @@ function createRelationshipBlockers(collections, selectedAreas, mode) {
     ).forEach(goal => {
       const accountId = String(goal.accountId || "")
       if (accountId && !accountIds.has(accountId)) {
-        addBlocker(`SaveIt goal ${stableId(goal.id)} has no resolvable SpendIt account.`)
+        addBlocker(`Savings goal ${stableId(goal.id)} has no resolvable Spending account.`)
       }
     })
   }
@@ -967,31 +967,31 @@ const ADD_STABLE_COLLECTIONS = Object.freeze([
     area: "earnit",
     appName: "earnit",
     storageKey: "salary-growth-tracker-v1",
-    label: "EarnIt entries"
+    label: "Income entries"
   },
   {
     area: "spendit",
     appName: "spendit",
     storageKey: "expensepath-accounts-v1",
-    label: "SpendIt accounts"
+    label: "Spending accounts"
   },
   {
     area: "spendit",
     appName: "spendit",
     storageKey: "expensepath-records-v1",
-    label: "SpendIt records"
+    label: "Spending records"
   },
   {
     area: "planit",
     appName: "planit",
     storageKey: "worthitPayoffs",
-    label: "PlanIt payoffs"
+    label: "Planner payoffs"
   },
   {
     area: "planit",
     appName: "planit",
     storageKey: "worthitPurchasedItems",
-    label: "PlanIt purchased items"
+    label: "Planner purchased items"
   },
   {
     area: "wishlist",
@@ -1009,7 +1009,7 @@ const ADD_STABLE_COLLECTIONS = Object.freeze([
     area: "saveit",
     appName: "saveit",
     storageKey: "savingsGoals",
-    label: "SaveIt goals"
+    label: "Savings goals"
   }
 ])
 
@@ -1115,7 +1115,7 @@ function buildAddRestorePlan(backup, current, selectedAreas) {
   ) {
     addBlockingIssue(
       blockers,
-      "PlanIt contains Planner rows without stable IDs, so PlanIt cannot be safely added."
+      "Planner contains rows without stable IDs, so it cannot be safely added."
     )
   }
 
@@ -1128,14 +1128,14 @@ function buildAddRestorePlan(backup, current, selectedAreas) {
     if (plannerComparison.conflicts.length) {
       addBlockingIssue(
         blockers,
-        "PlanIt Planner entries have same-ID records with different contents."
+        "Planner entries have same-ID records with different contents."
       )
     }
 
     if (plannerComparison.currentDuplicateIds.size) {
       addBlockingIssue(
         blockers,
-        "PlanIt Planner entries have duplicate IDs in current cloud data and cannot be safely compared."
+        "Planner entries have duplicate IDs in current cloud data and cannot be safely compared."
       )
     }
   }
@@ -1226,7 +1226,7 @@ function addSummaryLines(parent, added, selectedAreas = null) {
     addResultLine(
       parent,
       "+",
-      `EarnIt: ${added.earnit.entries} entries, ${added.earnit.companies} companies`,
+      `Income: ${added.earnit.entries} entries, ${added.earnit.companies} companies`,
       "new"
     )
   }
@@ -1238,7 +1238,7 @@ function addSummaryLines(parent, added, selectedAreas = null) {
     addResultLine(
       parent,
       "+",
-      `SpendIt: ${added.spendit.accounts} accounts, ${added.spendit.records} records`,
+      `Spending: ${added.spendit.accounts} accounts, ${added.spendit.records} records`,
       "new"
     )
   }
@@ -1250,7 +1250,7 @@ function addSummaryLines(parent, added, selectedAreas = null) {
     addResultLine(
       parent,
       "+",
-      `PlanIt: ${added.planit.payoffs} payoffs, ${added.planit.purchasedItems} purchased items`,
+      `Planner: ${added.planit.payoffs} payoffs, ${added.planit.purchasedItems} purchased items`,
       "new"
     )
   }
@@ -1268,7 +1268,7 @@ function addSummaryLines(parent, added, selectedAreas = null) {
   }
 
   if (added.saveit.goals || selectedAreas?.includes("saveit")) {
-    addResultLine(parent, "+", `SaveIt: ${added.saveit.goals} goals`, "new")
+    addResultLine(parent, "+", `Savings: ${added.saveit.goals} goals`, "new")
   }
 }
 
@@ -1498,7 +1498,7 @@ function initializeWorthItBackup() {
 
     ownIt.className = "worthit-backup-option worthit-backup-option--disabled"
     ownIt.setAttribute("aria-disabled", "true")
-    ownItTitle.textContent = "OwnIt"
+    ownItTitle.textContent = "Net Worth"
     ownItDetail.textContent = "Calculated automatically - no independent data to restore."
     ownItText.append(ownItTitle, ownItDetail)
     ownIt.append(ownItText)
@@ -1928,7 +1928,7 @@ function initializeWorthItBackup() {
       } catch (error) {
         console.error("WorthIt backup local cache update failed:", error)
         throw new Error(
-          "Your cloud data was replaced, but this browser could not refresh its local cache. Reload Home before continuing."
+          "Your cloud data was replaced, but this browser could not refresh its local cache. Reload Dashboard before continuing."
         )
       }
 
@@ -1950,7 +1950,7 @@ function initializeWorthItBackup() {
           .join(", ") || "None"}`,
         "valid"
       )
-      setStatus("Selected data replaced. Reloading Home...")
+      setStatus("Selected data replaced. Reloading Dashboard...")
       window.setTimeout(() => window.location.reload(), 700)
     } catch (error) {
       console.error("WorthIt backup Replace restore failed:", error)
@@ -2043,11 +2043,11 @@ function initializeWorthItBackup() {
       } catch (error) {
         console.error("WorthIt backup local cache update failed:", error)
         throw new Error(
-          "Your cloud data was restored, but this browser could not refresh its local cache. Reload Home before continuing."
+          "Your cloud data was restored, but this browser could not refresh its local cache. Reload Dashboard before continuing."
         )
       }
 
-      setStatus("Added new backup data. Reloading Home...")
+      setStatus("Added new backup data. Reloading Dashboard...")
       window.setTimeout(() => window.location.reload(), 500)
     } catch (error) {
       console.error("WorthIt backup Add restore failed:", error)

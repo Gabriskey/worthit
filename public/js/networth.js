@@ -151,14 +151,14 @@ const totalSpendItBalance = spendItAccounts.reduce(
 
     return `
       <div class="networth-row">
-        <strong>${account.name || "SpendIt Account"}</strong>
+        <strong>${account.name || "Spending Account"}</strong>
         <span class="${balanceClass}">
           ${formatCurrency(balance)}
         </span>
       </div>
     `
   }),
-  "No SpendIt accounts found."
+  "No Spending accounts found."
 )
 
 renderNetWorthList(
