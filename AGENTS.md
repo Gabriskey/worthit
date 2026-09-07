@@ -27,6 +27,34 @@ Do not create duplicate root copies of files that already belong inside `/public
 
 ---
 
+## User-Facing Names Vs Internal Names
+
+WorthIt's visible navigation order is:
+
+`Dashboard | Income | Spending | Wishlist | Planner | Savings | Net Worth`
+
+Preserve this order for future visible navigation changes unless the user requests otherwise.
+
+| User-facing section | Internal name and route | Cloud data ownership |
+| --- | --- | --- |
+| Dashboard | Home, `/` | Read-only dashboard |
+| Income | EarnIt, `/earnit/` | `earnit` Firestore app document |
+| Spending | SpendIt, `/spendit/` | `spendit` Firestore app document |
+| Wishlist | `/wishlist.html` | Owned and synced internally by PlanIt, in the `planit` Firestore app document |
+| Planner | PlanIt, `/planner.html` | `planit` Firestore app document |
+| Savings | SaveIt, `/savings.html` | `saveit` Firestore app document |
+| Net Worth | OwnIt, `/networth.html` | Read-only derived page with no independent financial Firestore document |
+
+The plain-language names are user-facing only. Do not rename internal implementation identifiers unless the user explicitly requests an architecture or data migration. In particular, preserve existing filenames, app-name values such as `earnit`, `spendit`, `planit`, and `saveit`, `source: "earnit"`, `spendItAccountId`, `spendItRecordId`, cloud-save helpers such as `savePlanItKeyToCloud()` and `saveSaveItToCloud()`, Firestore document names, localStorage keys, routes, and folder names.
+
+Do not perform broad internal search-and-replace operations such as `EarnIt` to `Income`, `SpendIt` to `Spending`, `PlanIt` to `Planner`, `SaveIt` to `Savings`, or `OwnIt` to `Net Worth`.
+
+### Wishlist And Planner
+
+Wishlist and Planner are separate top-level user-facing navigation sections. Internally, they remain one PlanIt data system: Wishlist uses `planit-sync.js`, shares the `planit` Firestore document, retains existing Wishlist <-> Planner links, and keeps `wishlistItems` as a PlanIt-owned storage key. Do not create a separate Wishlist Firestore document or sync architecture unless explicitly requested.
+
+---
+
 ## Firebase
 
 WorthIt uses:
