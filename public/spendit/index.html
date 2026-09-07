@@ -245,7 +245,10 @@ id="quickOverlay" onclick="toggleQuick(false)"></div>
       <div><label>Account type</label><select id="accountType"><option>general</option><option>cash</option><option>credit card</option><option>savings account</option></select></div>
       <div><label>Initial value</label><input id="accountInitial" type="number" step="0.01" placeholder="0"></div>
       <div><label>Color</label><input id="accountColor" type="color" value="#24e384"></div>
-      <div class="modal-actions"><button class="btn" type="button" onclick="closeAccountModal()">Cancel</button><button class="btn primary" id="accountSubmitBtn" type="submit">Create Account</button></div>
+      <div class="modal-actions account-modal-actions">
+        <button class="btn ghost-danger" id="accountModalDeleteButton" type="button" onclick="deleteAccount(editingAccountId)" hidden>Delete Account</button>
+        <div class="account-modal-save-actions"><button class="btn" type="button" onclick="closeAccountModal()">Cancel</button><button class="btn primary" id="accountSubmitBtn" type="submit">Create Account</button></div>
+      </div>
     </form>
   </div>
 </div>
@@ -393,7 +396,7 @@ id="quickOverlay" onclick="toggleQuick(false)"></div>
 
     <div class="modal-actions">
       <button class="btn" type="button" onclick="closeDeleteModal()">Cancel</button>
-      <button class="btn ghost-danger" type="button" onclick="confirmDelete()">Delete</button>
+      <button class="btn ghost-danger" id="deleteModalConfirmButton" type="button" onclick="confirmDelete()">Delete</button>
     </div>
   </div>
 </div>

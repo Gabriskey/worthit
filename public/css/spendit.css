@@ -292,6 +292,8 @@
     .modal-header { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:14px; }
     .modal-header h3 { font-size:1.05rem; }
     .modal-actions { display:flex; justify-content:flex-end; gap:10px; flex-wrap:wrap; margin-top:16px; }
+    .account-modal-actions { justify-content:space-between; }
+    .account-modal-save-actions { display:flex; gap:10px; flex-wrap:wrap; }
 #recordModalBackdrop {
   background: rgba(0,0,0,.45);
   backdrop-filter: blur(12px);
@@ -1163,4 +1165,3 @@ textarea:focus {
     min-width: 145px;
   }
 }
-

@@ -438,10 +438,11 @@ function backToAccounts(){
   render();
 }
 
-function openDeleteModal(title, text, onDelete){
+function openDeleteModal(title, text, onDelete, confirmLabel = 'Delete'){
   pendingDelete = onDelete;
   document.getElementById('deleteModalTitle').textContent = title;
   document.getElementById('deleteModalText').textContent = text;
+  document.getElementById('deleteModalConfirmButton').textContent = confirmLabel;
   document.getElementById('deleteModalBackdrop').classList.add('open');
 }
 
@@ -459,36 +460,164 @@ function confirmDelete(){
   }
 }
 
-function deleteAccount(id){
+function accountUsesId(value, id){
+  return String(value || '') === String(id);
+}
+
+function parseAccountDependencyCollection(value, label){
+  if (value === null) return [];
+
+  try {
+    const parsed = typeof value === 'string' ? JSON.parse(value) : value;
+
+    if (!Array.isArray(parsed)) {
+      throw new Error(`${label} is not an array.`);
+    }
+
+    return parsed;
+  } catch (error) {
+    throw new Error(`Could not verify ${label} dependencies.`);
+  }
+}
+
+async function loadCrossAppAccountDependencies(id){
+  const [
+    { auth },
+    { loadUserStorageKey }
+  ] = await Promise.all([
+    import('./firebase.js'),
+    import('./database.js')
+  ]);
+
+  const user = auth.currentUser;
+
+  if (!user) {
+    throw new Error('Sign in before deleting an account.');
+  }
+
+  const [earnItValue, savingsValue] = await Promise.all([
+    loadUserStorageKey(
+      user.uid,
+      'earnit',
+      'salary-growth-tracker-v1'
+    ),
+    loadUserStorageKey(
+      user.uid,
+      'saveit',
+      'savingsGoals'
+    )
+  ]);
+
+  if (auth.currentUser?.uid !== user.uid) {
+    throw new Error('Your signed-in account changed. Please try again.');
+  }
+
+  const earnItEntries = parseAccountDependencyCollection(
+    earnItValue,
+    'Income'
+  );
+  const savingsGoals = parseAccountDependencyCollection(
+    savingsValue,
+    'Savings'
+  );
+
+  return {
+    earnItEntries: earnItEntries.filter(entry =>
+      accountUsesId(entry?.spendItAccountId, id)
+    ).length,
+    savingsGoals: savingsGoals.filter(goal =>
+      accountUsesId(goal?.accountId, id)
+    ).length
+  };
+}
+
+function setAccountDeleteChecking(isChecking){
+  const button = document.getElementById('accountModalDeleteButton');
+  if (!button) return;
+
+  button.disabled = isChecking;
+  button.textContent = isChecking ? 'Checking account...' : 'Delete Account';
+}
+
+function setAccountDeleteVisibility(isVisible){
+  const button = document.getElementById('accountModalDeleteButton');
+  if (!button) return;
+
+  button.hidden = !isVisible;
+  button.disabled = false;
+  button.textContent = 'Delete Account';
+}
+
+function accountDependencyMessage(account, counts){
+  const dependencies = [
+    [counts.records, 'Spending record'],
+    [counts.earnItEntries, 'Income entry'],
+    [counts.savingsGoals, 'Savings goal']
+  ].filter(([count]) => count > 0);
+
+  const detailLines = dependencies.map(([count, label]) =>
+    `- ${count} ${label}${count === 1 ? '' : 's'}`
+  );
+
+  return `Cannot delete ${account.name} because it is still in use:\n\n${detailLines.join('\n')}\n\nMove or delete those items first, then try again.`;
+}
+
+async function deleteAccount(id){
   const account = accounts.find(a => a.id === id);
   if (!account) return;
 
-  const dependentRecords = records.filter(record =>
-    record.accountId === id ||
-    record.fromId === id ||
-    record.toId === id
-  );
+  const countDependentRecords = () => records.filter(record =>
+    accountUsesId(record.accountId, id) ||
+    accountUsesId(record.fromId, id) ||
+    accountUsesId(record.toId, id)
+  ).length;
 
-  if (dependentRecords.length) {
-    const recordLabel =
-      dependentRecords.length === 1
-        ? 'record'
-        : 'records';
-
-    return alert(
-      `Cannot delete ${account.name}: ${dependentRecords.length} ${recordLabel} still use this account. Reassign or delete those records first.`
-    );
+  if (countDependentRecords()) {
+    return alert(accountDependencyMessage(account, {
+      records: countDependentRecords(),
+      earnItEntries: 0,
+      savingsGoals: 0
+    }));
   }
 
-  openDeleteModal(
-    `Delete ${account.name}?`,
-    'Records linked to this account will stay, but balances may change.',
-    () => {
-      accounts = accounts.filter(a => a.id !== id);
-      saveAccounts();
-      render();
+  setAccountDeleteChecking(true);
+
+  try {
+    const crossAppCounts =
+      await loadCrossAppAccountDependencies(id);
+    const recordCount = countDependentRecords();
+    const currentAccount = accounts.find(a => a.id === id);
+
+    if (!currentAccount) return;
+
+    if (
+      recordCount ||
+      crossAppCounts.earnItEntries ||
+      crossAppCounts.savingsGoals
+    ) {
+      return alert(accountDependencyMessage(currentAccount, {
+        records: recordCount,
+        ...crossAppCounts
+      }));
     }
-  );
+
+    openDeleteModal(
+      `Delete ${currentAccount.name}?`,
+      'This account is empty and is not used by Income or Savings. This cannot be undone.',
+      () => {
+        closeAccountModal();
+        accounts = accounts.filter(a => a.id !== id);
+        saveAccounts();
+        render();
+      },
+      'Delete Account'
+    );
+  } catch (error) {
+    console.error('Could not verify account dependencies:', error);
+    alert(error.message || 'Could not verify Income and Savings dependencies. Please try again.');
+  } finally {
+    setAccountDeleteChecking(false);
+  }
 }
 
 function sortNewestFirst(a, b) {
@@ -1535,6 +1664,7 @@ function populateAccountSelects(){
 
 function openAccountModal(){
   editingAccountId = null;
+  setAccountDeleteVisibility(false);
   document.getElementById('accountModalTitle').textContent = 'Create account';
   document.getElementById('accountSubmitBtn').textContent = 'Create Account';
   document.getElementById('accountModalBackdrop').classList.add('open');
@@ -1543,6 +1673,7 @@ function openAccountModal(){
 
 function closeAccountModal(){
   editingAccountId = null;
+  setAccountDeleteVisibility(false);
   document.getElementById('accountModalBackdrop').classList.remove('open');
   document.getElementById('accountForm').reset();
   document.getElementById('accountColor').value = '#24e384';
@@ -1638,6 +1769,7 @@ function editAccount(id){
 
   document.getElementById('accountModalTitle').textContent = 'Edit account';
   document.getElementById('accountSubmitBtn').textContent = 'Update Account';
+  setAccountDeleteVisibility(true);
   document.getElementById('accountModalBackdrop').classList.add('open');
 }
 document.getElementById('accountForm').addEventListener('submit', e => {
