@@ -16,6 +16,7 @@ let plannerDateTarget = null
 let plannerCalendarMonth = new Date()
 
 let plannerLinkTarget = null
+let editingPayoffId = ""
 
 function normalizePlannerLink(value) {
   let link = String(value || "").trim()
@@ -999,6 +1000,17 @@ window.reloadPlanItPlannerFromStorage =
   }
 
 function openPayoffModal() {
+  editingPayoffId = ""
+
+  document.getElementById("payoffModalTitle").textContent = "Add Payoff"
+  document.getElementById("payoffSaveButton").textContent = "Save Payoff"
+  document.getElementById("payoffName").value = ""
+  document.getElementById("payoffTotal").value = ""
+  document.getElementById("payoffPaid").value = ""
+  document.getElementById("payoffMonthly").value = ""
+  document.getElementById("payoffDueDay").value = ""
+  document.getElementById("payoffCategory").value = ""
+
   const modal = document.getElementById("payoffModal")
   if (modal) modal.style.display = "flex"
 
@@ -1007,8 +1019,32 @@ function openPayoffModal() {
 }
 
 function closePayoffModal() {
+  editingPayoffId = ""
+
   const modal = document.getElementById("payoffModal")
   if (modal) modal.style.display = "none"
+}
+
+function editPayoff(id) {
+  const payoff = loadPayoffs().find(item => String(item.id) === String(id))
+  if (!payoff || payoff.source === "planner") return
+
+  editingPayoffId = String(payoff.id)
+
+  document.getElementById("payoffModalTitle").textContent = "Edit Payoff"
+  document.getElementById("payoffSaveButton").textContent = "Save Changes"
+  document.getElementById("payoffName").value = payoff.name || ""
+  document.getElementById("payoffTotal").value = Number(payoff.total || 0)
+  document.getElementById("payoffPaid").value = Number(payoff.paid || 0)
+  document.getElementById("payoffMonthly").value = Number(payoff.monthly || 0)
+  document.getElementById("payoffDueDay").value = Number(payoff.dueDay || 1)
+  document.getElementById("payoffCategory").value = payoff.category || "Installment"
+
+  const modal = document.getElementById("payoffModal")
+  if (modal) modal.style.display = "flex"
+
+  const input = document.getElementById("payoffName")
+  if (input) input.focus()
 }
 
 function addPayoff() {
@@ -1057,6 +1093,31 @@ function addPayoff() {
   }
 
   const payoffs = loadPayoffs()
+
+  if (editingPayoffId) {
+    const payoff = payoffs.find(item => String(item.id) === editingPayoffId)
+
+    if (!payoff || payoff.source === "planner") {
+      closePayoffModal()
+      renderPayoffTracker()
+      showToast("This payoff can no longer be edited.")
+      return
+    }
+
+    payoff.name = name
+    payoff.total = total
+    payoff.paid = paid
+    payoff.monthly = monthly
+    payoff.dueDay = dueDay
+    payoff.category = category
+
+    savePayoffs(payoffs)
+    closePayoffModal()
+    renderPayoffTracker()
+    showToast(`${name} updated`)
+    return
+  }
+
   payoffs.push(normalizePayoff({
     id: String(Date.now()),
     name,
@@ -1204,16 +1265,25 @@ list.innerHTML = stats.payoffs.map(item => {
   ? Math.ceil(remaining / monthly)
   : 0
   const category = item.category || "Installment"
-  const deleteControl = item.source === "planner"
+  const manualControls = item.source === "planner"
     ? ""
     : `
-      <button
-        class="btn btn-secondary payoff-delete-button"
-        type="button"
-        data-payoff-id="${encodeURIComponent(item.id)}"
-      >
-        Delete
-      </button>
+      <div class="payoff-row-actions">
+        <button
+          class="btn btn-secondary"
+          type="button"
+          data-edit-payoff-id="${encodeURIComponent(item.id)}"
+        >
+          Edit
+        </button>
+        <button
+          class="btn btn-secondary payoff-delete-button"
+          type="button"
+          data-payoff-id="${encodeURIComponent(item.id)}"
+        >
+          Delete
+        </button>
+      </div>
     `
 
   return `
@@ -1248,16 +1318,22 @@ list.innerHTML = stats.payoffs.map(item => {
         <strong>${monthsLeft} mo</strong>
       </div>
 
-      ${deleteControl}
+      ${manualControls}
     </div>
   `
 }).join("")
 
-list.querySelectorAll("[data-payoff-id]").forEach(button => {
-  button.addEventListener("click", () => {
-    deletePayoff(decodeURIComponent(button.dataset.payoffId || ""))
+  list.querySelectorAll("[data-payoff-id]").forEach(button => {
+    button.addEventListener("click", () => {
+      deletePayoff(decodeURIComponent(button.dataset.payoffId || ""))
+    })
   })
-})
+
+  list.querySelectorAll("[data-edit-payoff-id]").forEach(button => {
+    button.addEventListener("click", () => {
+      editPayoff(decodeURIComponent(button.dataset.editPayoffId || ""))
+    })
+  })
 }
 
 function getDaySuffix(day) {

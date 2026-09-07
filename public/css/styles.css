@@ -505,6 +505,14 @@ body {
   color: var(--text-tertiary);
 }
 
+.payoff-form-label {
+  display: block;
+  margin-bottom: 0.45rem;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
 .invalid {
   border-color: var(--danger) !important;
   box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.15) !important;
@@ -2253,6 +2261,11 @@ th.actions {
 .payoff-delete-button {
   border-color: var(--danger);
   color: var(--danger);
+}
+
+.payoff-row-actions {
+  display: flex;
+  gap: 0.5rem;
 }
 
 /* ========================================

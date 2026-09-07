@@ -144,37 +144,46 @@
 <div class="modal" id="payoffModal">
   <div class="modal-content">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
-      <h3 style="margin:0;">Add Payoff</h3>
+      <h3 id="payoffModalTitle" style="margin:0;">Add Payoff</h3>
       <button type="button" onclick="closePayoffModal()" class="modal-x-btn">✖</button>
     </div>
 
     <div class="form-group">
-      <input id="payoffName" placeholder="Name e.g. iPhone Installment">
+      <label class="payoff-form-label" for="payoffName">Name</label>
+      <input id="payoffName" placeholder="e.g. Laptop">
     </div>
 
     <div class="form-group">
-      <input id="payoffTotal" type="number" placeholder="Total amount">
+      <label class="payoff-form-label" for="payoffTotal">Total Amount</label>
+      <input id="payoffTotal" type="number">
     </div>
 
     <div class="form-group">
-      <input id="payoffPaid" type="number" placeholder="Amount paid so far">
+      <label class="payoff-form-label" for="payoffPaid">Paid Amount</label>
+      <input id="payoffPaid" type="number">
     </div>
 
     <div class="form-group">
-      <input id="payoffMonthly" type="number" min="0" placeholder="Monthly payment">
+      <label class="payoff-form-label" for="payoffMonthly">Monthly Payment</label>
+      <input id="payoffMonthly" type="number" min="0">
     </div>
 
     <div class="form-group">
-      <input id="payoffDueDay" type="number" min="1" max="31" placeholder="Due day e.g. 15">
+      <label class="payoff-form-label" for="payoffDueDay">Due Day</label>
+      <input id="payoffDueDay" type="number" min="1" max="31">
     </div>
 
     <div class="form-group">
+      <label class="payoff-form-label" for="payoffCategory">Category</label>
       <input id="payoffCategory" placeholder="Category e.g. Loan, Installment, Credit Card">
     </div>
 
-    <button class="btn btn-primary" type="button" onclick="addPayoff()" style="width:100%; justify-content:center;">
-      Save Payoff
-    </button>
+    <div style="display:flex; gap:0.75rem; justify-content:flex-end; flex-wrap:wrap;">
+      <button class="btn btn-secondary" type="button" onclick="closePayoffModal()">Cancel</button>
+      <button id="payoffSaveButton" class="btn btn-primary" type="button" onclick="addPayoff()">
+        Save Payoff
+      </button>
+    </div>
   </div>
 </div>
 
