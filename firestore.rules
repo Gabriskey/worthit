@@ -1,0 +1,20 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    // Current WorthIt app data is stored in these user-owned app documents.
+    match /users/{userId}/apps/{appName} {
+      allow read, write: if isOwner(userId);
+    }
+
+    // Net Worth history is immutable after a signed-in user creates it.
+    match /users/{userId}/netWorthSnapshots/{snapshotId} {
+      allow read, create: if isOwner(userId);
+      allow update, delete: if false;
+    }
+  }
+}

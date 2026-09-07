@@ -204,6 +204,53 @@ async function loadUserStorageKey(
   return storage[storageKey];
 }
 
+// A snapshot is created once per date and is never overwritten by the client.
+async function createUserNetWorthSnapshot(
+  userId,
+  snapshotDate,
+  snapshot
+) {
+  if (!userId) {
+    throw new Error(
+      "Cannot create a Net Worth snapshot without a user ID."
+    );
+  }
+
+  if (!snapshotDate) {
+    throw new Error(
+      "Cannot create a Net Worth snapshot without a date."
+    );
+  }
+
+  const snapshotRef = doc(
+    db,
+    "users",
+    userId,
+    "netWorthSnapshots",
+    snapshotDate
+  );
+
+  return runTransaction(db, async transaction => {
+    const existing = await transaction.get(snapshotRef);
+
+    if (existing.exists()) {
+      return false;
+    }
+
+    transaction.set(snapshotRef, {
+      date: snapshot.date,
+      netWorth: snapshot.netWorth,
+      totalAccountBalances: snapshot.totalAccountBalances,
+      remainingLiabilities: snapshot.remainingLiabilities,
+      capturedAt: serverTimestamp(),
+      timezone: snapshot.timezone,
+      calculationVersion: snapshot.calculationVersion
+    });
+
+    return true;
+  });
+}
+
 // Restore uses one transaction so selected app documents change together.
 async function runUserStorageRestoreTransaction(
   userId,
@@ -295,5 +342,6 @@ export {
   loadUserAppState,
   saveUserStorageKey,
   loadUserStorageKey,
+  createUserNetWorthSnapshot,
   runUserStorageRestoreTransaction
 };

@@ -111,6 +111,14 @@ When changing synchronization logic:
 
 ---
 
+## Net Worth History V1
+
+Net Worth history is captured client-side only when a signed-in user opens a normal WorthIt section on the 1st or 15th of the month in `Asia/Manila`, beginning on `2026-09-15`. Each immutable snapshot uses `users/{uid}/netWorthSnapshots/{YYYY-MM-DD}`. Missed dates remain missing; never backfill or fake a historical date.
+
+If WorthIt later moves to Blaze, a scheduler/backend capture may be added so snapshots can run while the app is closed. It must reuse the canonical Net Worth calculator and must never fabricate or backdate snapshots.
+
+---
+
 ## EarnIt and SpendIt
 
 EarnIt and SpendIt have an existing linked-record system.
