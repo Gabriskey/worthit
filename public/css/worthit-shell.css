@@ -65,22 +65,25 @@ body.light-mode {
 }
 
 .worthit-shell__inner {
-  width: min(1400px, calc(100vw - 32px));
+  width: 100%;
   min-height: 82px;
-  margin: 0 auto;
+  margin: 0;
+  padding: 0 2rem;
+  box-sizing: border-box;
 
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 2rem;
+  gap: 1rem;
 }
 
 .worthit-shell__main {
   min-width: 0;
+  flex: 1 1 auto;
 
   display: flex;
   align-items: center;
-  gap: 2.4rem;
+  gap: 1.5rem;
 }
 
 .worthit-shell__brand {
@@ -111,8 +114,8 @@ body.light-mode {
 
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 0.8rem;
+  flex-wrap: nowrap;
+  gap: 0.5rem;
 }
 
 .worthit-shell__divider {
@@ -128,10 +131,10 @@ body.light-mode {
   padding: 0.42rem 0.25rem;
 
   font-family: "Segoe UI", Inter, Arial, sans-serif;
-  font-size: 1.08rem;
+  font-size: 0.86rem;
   font-weight: 800;
   line-height: 1.2;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
 
   text-decoration: none;
   text-transform: uppercase;
@@ -275,7 +278,7 @@ body.light-mode {
 
 @media (max-width: 1050px) {
   .worthit-shell__inner {
-    padding: 16px 0;
+    padding: 16px 2rem;
     align-items: flex-start;
   }
 
