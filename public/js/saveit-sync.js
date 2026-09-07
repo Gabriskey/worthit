@@ -9,6 +9,20 @@ import {
 
 const APP_NAME = "saveit";
 const STORAGE_KEY = "savingsGoals";
+const CLOUD_KEYS = [
+  {
+    appName: APP_NAME,
+    storageKey: STORAGE_KEY
+  },
+  {
+    appName: "spendit",
+    storageKey: "expensepath-accounts-v1"
+  },
+  {
+    appName: "spendit",
+    storageKey: "expensepath-records-v1"
+  }
+];
 
 let currentUser = null;
 let cloudReady = false;
@@ -21,7 +35,18 @@ function refreshSaveIt() {
   }
 }
 
-function normalizeCloudValue(value) {
+function finishSaveItCloudLoading(user) {
+  if (
+    !user ||
+    currentUser?.uid === user.uid
+  ) {
+    window
+      .finishWorthItCloudLoading
+      ?.();
+  }
+}
+
+function normalizeCloudValue(value, storageKey) {
   if (value === null) {
     return null;
   }
@@ -31,7 +56,7 @@ function normalizeCloudValue(value) {
 
     if (!Array.isArray(parsed)) {
       throw new Error(
-        "Cloud savingsGoals is not an array."
+        `Cloud ${storageKey} is not an array.`
       );
     }
 
@@ -43,7 +68,7 @@ function normalizeCloudValue(value) {
   }
 
   throw new Error(
-    "Cloud savingsGoals has an invalid format."
+    `Cloud ${storageKey} has an invalid format.`
   );
 }
 
@@ -52,38 +77,61 @@ async function loadSaveItForUser(user) {
 
   const userId = user.uid;
 
-  const cloudValue =
-    await loadUserStorageKey(
-      userId,
-      APP_NAME,
-      STORAGE_KEY
-    );
+  const entries = await Promise.all(
+    CLOUD_KEYS.map(
+      async ({
+        appName,
+        storageKey
+      }) => ({
+        storageKey,
+        value: await loadUserStorageKey(
+          userId,
+          appName,
+          storageKey
+        )
+      })
+    )
+  );
 
   // Account changed while Firestore was loading.
   if (
     !currentUser ||
     currentUser.uid !== userId
   ) {
-    return;
+    return false;
   }
 
-  const normalizedValue =
-    normalizeCloudValue(cloudValue);
+  const normalizedEntries = entries.map(
+    ({
+      storageKey,
+      value
+    }) => ({
+      storageKey,
+      value: normalizeCloudValue(
+        value,
+        storageKey
+      )
+    })
+  );
 
-  if (normalizedValue === null) {
-    localStorage.removeItem(
-      STORAGE_KEY
-    );
-  } else {
-    localStorage.setItem(
-      STORAGE_KEY,
-      normalizedValue
-    );
-  }
+  normalizedEntries.forEach(
+    ({
+      storageKey,
+      value
+    }) => {
+      if (value === null) {
+        localStorage.removeItem(storageKey);
+      } else {
+        localStorage.setItem(storageKey, value);
+      }
+    }
+  );
 
   cloudReady = true;
 
   refreshSaveIt();
+
+  return true;
 }
 
 async function saveSaveItToCloud(rawValue) {
@@ -126,9 +174,7 @@ watchAuthState(async user => {
     );
 
     refreshSaveIt();
-window
-  .hideWorthItCloudLoading
-  ?.();
+    finishSaveItCloudLoading();
     return;
   }
 
@@ -137,11 +183,14 @@ window
     ?.();
 
   try {
-    await loadSaveItForUser(user);
+    const loaded =
+      await loadSaveItForUser(user);
 
-    console.log(
-      `SaveIt loaded for ${user.email}`
-    );
+    if (loaded) {
+      console.log(
+        `SaveIt loaded for ${user.email}`
+      );
+    }
 
   } catch (error) {
     console.error(
@@ -149,8 +198,6 @@ window
       error
     );
   } finally {
-    window
-      .hideWorthItCloudLoading
-      ?.();
+    finishSaveItCloudLoading(user);
   }
 });
