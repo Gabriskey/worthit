@@ -573,11 +573,15 @@ async function deleteAccount(id){
   ).length;
 
   if (countDependentRecords()) {
-    return alert(accountDependencyMessage(account, {
+    await window.WorthItModal.notice(accountDependencyMessage(account, {
       records: countDependentRecords(),
       earnItEntries: 0,
       savingsGoals: 0
-    }));
+    }), {
+      title: 'Account still in use',
+      variant: 'warning'
+    });
+    return;
   }
 
   setAccountDeleteChecking(true);
@@ -595,10 +599,14 @@ async function deleteAccount(id){
       crossAppCounts.earnItEntries ||
       crossAppCounts.savingsGoals
     ) {
-      return alert(accountDependencyMessage(currentAccount, {
+      await window.WorthItModal.notice(accountDependencyMessage(currentAccount, {
         records: recordCount,
         ...crossAppCounts
-      }));
+      }), {
+        title: 'Account still in use',
+        variant: 'warning'
+      });
+      return;
     }
 
     openDeleteModal(
@@ -614,7 +622,13 @@ async function deleteAccount(id){
     );
   } catch (error) {
     console.error('Could not verify account dependencies:', error);
-    alert(error.message || 'Could not verify Income and Savings dependencies. Please try again.');
+    await window.WorthItModal.notice(
+      error.message || 'Could not verify Income and Savings dependencies. Please try again.',
+      {
+        title: 'Could not verify dependencies',
+        variant: 'warning'
+      }
+    );
   } finally {
     setAccountDeleteChecking(false);
   }
@@ -1900,20 +1914,20 @@ document.getElementById('recordForm').addEventListener('submit', e => {
   const amount = Number(recordAmount.value || 0);
 
   if (amount <= 0) {
-    return alert(
+    return window.WorthItModal.notice(
       'Amount must be greater than 0.'
     );
   }
 
   if (!amount) {
-    return alert('Enter an amount first.');
+    return window.WorthItModal.notice('Enter an amount first.');
   }
 
 let recordData;
 
 if (recordType === 'transfer') {
   if (recordFromAccount.value === recordToAccount.value) {
-    return alert('Choose two different accounts.');
+    return window.WorthItModal.notice('Choose two different accounts.');
   }
 
   recordData = {
@@ -1961,7 +1975,7 @@ function editRecord(id){
   if (!record || record.type === 'transfer') return;
 
   if (record.source === 'earnit') {
-    return alert(
+    return window.WorthItModal.notice(
       'This income record is linked to Income. Edit it from Income instead.'
     );
   }
@@ -1989,7 +2003,7 @@ function deleteRecord(id){
   if (!record) return;
 
   if (record.source === 'earnit') {
-    return alert(
+    return window.WorthItModal.notice(
       'This income record is linked to Income. Delete it from Income instead.'
     );
   }

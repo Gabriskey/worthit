@@ -248,8 +248,13 @@ accountMenu.innerHTML =
         closeMenu();
 
         const confirmed =
-          confirm(
-            `Sign out of WorthIt?\n\n${user.email}`
+          await window.WorthItModal.confirm(
+            `Sign out of WorthIt?\n\n${user.email}`,
+            {
+              title: "Sign out?",
+              confirmLabel: "Sign out",
+              destructive: true
+            }
           );
 
         if (!confirmed) return;

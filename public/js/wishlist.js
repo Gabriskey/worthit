@@ -1684,7 +1684,7 @@ function openWishlistPlannerModal(id, action = "copy") {
   const removeSection = document.getElementById("wishlistPlannerRemoveSection")
 
   if (!modal) {
-    alert("Wishlist planner modal is missing in wishlist.html")
+    void window.WorthItModal.notice("Wishlist planner modal is missing in wishlist.html")
     return
   }
 
@@ -1692,7 +1692,7 @@ function openWishlistPlannerModal(id, action = "copy") {
   const item = items.find(item => String(item.id) === String(id))
 
   if (!item) {
-    alert("Wishlist item not found")
+    void window.WorthItModal.notice("Wishlist item not found")
     return
   }
 
@@ -2148,7 +2148,7 @@ document.addEventListener("click", function(e) {
 
   const id = plannerBtn.dataset.id
   if (!id) {
-    alert("No wishlist item ID found on this button")
+    void window.WorthItModal.notice("No wishlist item ID found on this button")
     return
   }
 

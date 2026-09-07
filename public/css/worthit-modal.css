@@ -1,0 +1,70 @@
+/* Shared lightweight notices and confirmations. */
+
+.worthit-dialog {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: grid;
+  place-items: center;
+  padding: 1.25rem;
+  background: rgba(0, 0, 0, 0.68);
+  backdrop-filter: blur(5px);
+}
+
+.worthit-dialog[hidden] {
+  display: none;
+}
+
+.worthit-dialog__panel {
+  width: min(100%, 460px);
+  padding: 1.5rem;
+  border: 1px solid var(--border, var(--worthit-shell-border));
+  border-radius: 20px;
+  background: var(--surface, var(--worthit-shell-surface));
+  box-shadow: var(--shadow-xl, var(--worthit-shell-shadow));
+}
+
+.worthit-dialog__title,
+.worthit-dialog__message {
+  margin: 0;
+}
+
+.worthit-dialog__title {
+  color: var(--text, var(--worthit-shell-text));
+  font-size: 1.2rem;
+}
+
+.worthit-dialog__message {
+  margin-top: 0.75rem;
+  color: var(--text-secondary, var(--worthit-shell-muted));
+  line-height: 1.5;
+  white-space: pre-line;
+}
+
+.worthit-dialog__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+.worthit-dialog__confirm--danger {
+  border-color: var(--danger, #e06b75);
+  background: var(--danger, #e06b75);
+  color: #fff;
+}
+
+.worthit-dialog__confirm--danger:hover {
+  filter: brightness(1.08);
+}
+
+body.worthit-dialog-open {
+  overflow: hidden;
+}
+
+@media (max-width: 600px) {
+  .worthit-dialog__actions {
+    align-items: stretch;
+    flex-direction: column-reverse;
+  }
+}

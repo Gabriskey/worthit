@@ -2068,7 +2068,7 @@ async function confirmDeleteEntry() {
         error
       );
 
-      alert(
+      await window.WorthItModal.notice(
         "The linked income record could not be deleted, so the Income entry was kept."
       );
 
@@ -2179,7 +2179,7 @@ async function saveCompanyEdits() {
         error
       );
 
-      alert(
+      await window.WorthItModal.notice(
         "The linked income records could not be updated, so the company was not renamed."
       );
 
@@ -2675,8 +2675,12 @@ try {
     error
   );
 
-  const shouldRetry = confirm(
-    "The Income entry was saved, but the linked Spending income could not be synced.\n\nRetry Spending sync now?"
+  const shouldRetry = await window.WorthItModal.confirm(
+    "The Income entry was saved, but the linked Spending income could not be synced.\n\nRetry Spending sync now?",
+    {
+      title: "Retry Spending sync?",
+      confirmLabel: "Retry"
+    }
   );
 
   if (shouldRetry) {
@@ -2691,7 +2695,7 @@ try {
         retryError
       );
 
-      alert(
+      await window.WorthItModal.notice(
         "Spending sync failed again. Your Income entry is still saved. You can retry later by editing and saving the Income entry again."
       );
     }
