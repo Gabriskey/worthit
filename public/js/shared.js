@@ -199,14 +199,24 @@ function getCombinedPayoffs() {
   return [...manualPayoffs, ...filteredPlannerPayoffs]
 }
 function getPayoffStats() {
-  const payoffs = getCombinedPayoffs()
+  const payoffs = getCombinedPayoffs().map(p => {
+    const remaining = Math.max(Number(p.total || 0) - Number(p.paid || 0), 0)
+
+    return {
+      ...p,
+      effectiveMonthlyDue:
+        p.source !== "planner" && remaining <= 0
+          ? 0
+          : Number(p.monthly || 0)
+    }
+  })
 
   const totalOriginal = payoffs.reduce((sum, p) => sum + Number(p.total || 0), 0)
   const totalPaid = payoffs.reduce((sum, p) => sum + Number(p.paid || 0), 0)
   const totalRemaining = payoffs.reduce((sum, p) => {
     return sum + Math.max(Number(p.total || 0) - Number(p.paid || 0), 0)
   }, 0)
-  const monthlyDue = payoffs.reduce((sum, p) => sum + Number(p.monthly || 0), 0)
+  const monthlyDue = payoffs.reduce((sum, p) => sum + p.effectiveMonthlyDue, 0)
   const entryCount = payoffs.reduce((sum, p) => sum + Number(p.entryCount || 1), 0)
 
   return {

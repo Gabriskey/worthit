@@ -1194,8 +1194,9 @@ function renderPayoffTracker() {
   }
 
 list.innerHTML = stats.payoffs.map(item => {
+  const total = Number(item.total || 0)
   const remaining = Math.max(Number(item.total || 0) - Number(item.paid || 0), 0)
-  const monthly = Number(item.monthly || 0)
+  const monthly = Number(item.effectiveMonthlyDue || 0)
   const dueDay = Number(item.dueDay || 1)
   const monthsLeft = item.source === "planner" && Number(item.entryCount || 0) > 0
   ? Number(item.entryCount || 0)
@@ -1220,6 +1221,11 @@ list.innerHTML = stats.payoffs.map(item => {
       <div class="payoff-row-main">
         <strong>${item.name || "Payoff Item"}</strong>
         <span>${category}</span>
+      </div>
+
+      <div class="payoff-row-stat">
+        <span>Total</span>
+        <strong>${formatCurrency(total)}</strong>
       </div>
 
       <div class="payoff-row-stat payoff-danger">

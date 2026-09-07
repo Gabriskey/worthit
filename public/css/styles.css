@@ -2186,7 +2186,7 @@ th.actions {
 
 .payoff-row-compact {
   display: grid;
-  grid-template-columns: minmax(220px, 1.6fr) repeat(4, minmax(120px, auto)) auto;
+  grid-template-columns: minmax(220px, 1.6fr) repeat(5, minmax(120px, auto)) auto;
   align-items: center;
   gap: 0.8rem;
   background: var(--surface);
