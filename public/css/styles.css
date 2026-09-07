@@ -1823,7 +1823,7 @@ th.actions {
 
 .savings-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 1rem;
 }
 
@@ -1871,6 +1871,30 @@ th.actions {
 
 .savings-editable:focus {
   background: var(--surface-3);
+  outline: 2px solid var(--accent);
+  box-shadow: 0 0 0 4px var(--accent-soft);
+}
+
+.savings-account-select {
+  width: 100%;
+  padding: 0.25rem;
+  border: 0;
+  border-radius: 6px;
+  outline: none;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.savings-account-select:hover,
+.savings-account-select:focus {
+  background: var(--surface-3);
+}
+
+.savings-account-select:focus {
   outline: 2px solid var(--accent);
   box-shadow: 0 0 0 4px var(--accent-soft);
 }

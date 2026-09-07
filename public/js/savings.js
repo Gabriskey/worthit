@@ -321,6 +321,55 @@ if (key === "saved") {
   renderSavingsPage()
 }
 
+function updateSavingsGoalAccount(id, value) {
+  const goals = loadSavingsGoals()
+  const goal = goals.find(item => item.id === id)
+  if (!goal) return
+
+  const accountId = String(value || "")
+
+  if (!accountId) {
+    showToast("Choose a Spending account")
+    renderSavingsPage()
+    return
+  }
+
+  if (accountId === String(goal.accountId || "")) return
+
+  const accountBalance = getSpendItBalanceForSavings(accountId)
+
+  if (accountBalance === null) {
+    showToast("Selected Spending account was not found")
+    renderSavingsPage()
+    return
+  }
+
+  const allocatedToOtherGoals = goals.reduce((sum, item) => {
+    if (String(item.id) === String(goal.id)) return sum
+
+    return String(item.accountId || "") === accountId
+      ? sum + Number(item.saved || 0)
+      : sum
+  }, 0)
+
+  const availableForThisGoal = Math.max(
+    accountBalance - allocatedToOtherGoals,
+    0
+  )
+
+  if (Number(goal.saved || 0) > availableForThisGoal) {
+    showToast(
+      `Only ${formatCurrency(availableForThisGoal)} is available in this account`
+    )
+    renderSavingsPage()
+    return
+  }
+
+  goal.accountId = accountId
+  saveSavingsGoals(goals)
+  renderSavingsPage()
+}
+
 function openSavingsDeleteModal(id) {
   const goals = loadSavingsGoals()
   const goal = goals.find(item => item.id === id)
@@ -402,8 +451,19 @@ renderSavingsSummary(goals)
   String(goal.accountId || "")
 )
 
-const accountName = linkedAccount?.name ||
+    const accountName = linkedAccount?.name ||
   (goal.accountId ? "Account unavailable" : "No account assigned")
+
+    const accountOptions = spendItAccounts.map(account => {
+      const accountId = String(account.id || "")
+      if (!accountId) return ""
+
+      const selected = accountId === String(goal.accountId || "")
+        ? " selected"
+        : ""
+
+      return `<option value="${accountId}"${selected}>${account.name || "Unnamed Account"}</option>`
+    }).join("")
 
     return `
       <div class="savings-card">
@@ -454,6 +514,25 @@ const accountName = linkedAccount?.name ||
           <div class="savings-field">
             <label>Left to Save</label>
             <div class="savings-static-value">${formatCurrency(left)}</div>
+          </div>
+
+          <div class="savings-field">
+            <label>Stored in</label>
+            <select
+              class="savings-account-select"
+              onchange="updateSavingsGoalAccount('${goal.id}', this.value)"
+              ${spendItAccounts.length ? "" : "disabled"}
+            >
+              ${goal.accountId && !linkedAccount
+                ? `<option value="" selected disabled>Account unavailable</option>`
+                : ""}
+              ${spendItAccounts.length && !goal.accountId
+                ? `<option value="" selected disabled>No account assigned</option>`
+                : ""}
+              ${!spendItAccounts.length
+                ? `<option value="" selected>No Spending accounts found</option>`
+                : accountOptions}
+            </select>
           </div>
         </div>
       </div>
