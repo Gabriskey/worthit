@@ -46,6 +46,39 @@ function parseStorageArray(value) {
   }
 }
 
+function parseStorageArrayForAccountCreation(value) {
+  if (value === null) {
+    return [];
+  }
+
+  let parsed;
+
+  try {
+    parsed =
+      typeof value === "string"
+        ? JSON.parse(value)
+        : value;
+  } catch (error) {
+    throw new Error(
+      "Could not verify the current Spending accounts."
+    );
+  }
+
+  if (!Array.isArray(parsed)) {
+    throw new Error(
+      "Could not verify the current Spending accounts."
+    );
+  }
+
+  return parsed;
+}
+
+function createSpendItAccountId() {
+  return `acct_${Date.now()}_${Math.random()
+    .toString(36)
+    .slice(2, 8)}`;
+}
+
 
 function setDefaultPaidTime() {
   const input =
@@ -104,7 +137,7 @@ function renderSpendItAccounts() {
 
   if (!spendItAccounts.length) {
     placeholder.textContent =
-      "No SpendIt accounts found";
+      "No Spending accounts found";
 
     select.appendChild(
       placeholder
@@ -117,7 +150,7 @@ function renderSpendItAccounts() {
 
 
   placeholder.textContent =
-    "Choose SpendIt account";
+    "Choose Spending account";
 
   select.appendChild(
     placeholder
@@ -188,6 +221,75 @@ async function loadSpendItAccounts(
   renderSpendItAccounts();
 
   setDefaultPaidTime();
+}
+
+async function createSpendItAccountForEarnIt(
+  accountData
+) {
+  if (!currentUser) {
+    throw new Error(
+      "Sign in before creating a Spending account."
+    );
+  }
+
+  const name =
+    String(
+      accountData?.name || ""
+    ).trim();
+
+  if (!name) {
+    throw new Error(
+      "Please enter an account name."
+    );
+  }
+
+  const userId = currentUser.uid;
+  const rawAccounts = await loadUserStorageKey(
+    userId,
+    SPENDIT_APP,
+    SPENDIT_ACCOUNT_KEY
+  );
+  const accounts =
+    parseStorageArrayForAccountCreation(
+      rawAccounts
+    );
+
+  if (
+    !currentUser ||
+    currentUser.uid !== userId
+  ) {
+    throw new Error(
+      "Your signed-in account changed. Please try again."
+    );
+  }
+
+  if (accounts.length) {
+    spendItAccounts = accounts;
+    renderSpendItAccounts();
+    return accounts[0];
+  }
+
+  const account = {
+    id: createSpendItAccountId(),
+    name,
+    type: String(accountData?.type || "general"),
+    initial: Number(accountData?.initial || 0),
+    color: String(accountData?.color || "#24e384")
+  };
+
+  accounts.push(account);
+
+  await saveUserStorageKey(
+    userId,
+    SPENDIT_APP,
+    SPENDIT_ACCOUNT_KEY,
+    JSON.stringify(accounts)
+  );
+
+  spendItAccounts = accounts;
+  renderSpendItAccounts();
+
+  return account;
 }
 
 async function syncEarnItEntryToSpendIt(
@@ -640,6 +742,9 @@ window.getSpendItAccountsForEarnIt =
       })
     );
   };
+
+window.createSpendItAccountForEarnIt =
+  createSpendItAccountForEarnIt;
 
   window.syncEarnItEntryToSpendIt =
   syncEarnItEntryToSpendIt;

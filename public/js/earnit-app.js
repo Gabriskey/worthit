@@ -39,6 +39,46 @@ const heroAverageSalary = document.getElementById('heroAverageSalary');
 const heroLatestSalary = document.getElementById('heroLatestSalary');
 const heroTotalTracked = document.getElementById('heroTotalTracked');
 const companyModalBackdrop = document.getElementById('companyModalBackdrop');
+const spendItAccountModalBackdrop =
+  document.getElementById(
+    'spendItAccountModalBackdrop'
+  );
+const createSpendItAccountForm =
+  document.getElementById(
+    'createSpendItAccountForm'
+  );
+const newSpendItAccountName =
+  document.getElementById(
+    'newSpendItAccountName'
+  );
+const newSpendItAccountType =
+  document.getElementById(
+    'newSpendItAccountType'
+  );
+const newSpendItAccountInitial =
+  document.getElementById(
+    'newSpendItAccountInitial'
+  );
+const newSpendItAccountColor =
+  document.getElementById(
+    'newSpendItAccountColor'
+  );
+const createSpendItAccountError =
+  document.getElementById(
+    'createSpendItAccountError'
+  );
+const closeSpendItAccountModalBtn =
+  document.getElementById(
+    'closeSpendItAccountModalBtn'
+  );
+const cancelSpendItAccountModalBtn =
+  document.getElementById(
+    'cancelSpendItAccountModalBtn'
+  );
+const createSpendItAccountSubmitBtn =
+  document.getElementById(
+    'createSpendItAccountSubmitBtn'
+  );
 const deleteEntryModalBackdrop =
   document.getElementById(
     'deleteEntryModalBackdrop'
@@ -76,6 +116,7 @@ const confirmDeleteEntryBtn =
 
 
 let pendingDeleteEntryId = null;
+let isCreatingSpendItAccount = false;
     const closeCompanyModalBtn = document.getElementById('closeCompanyModalBtn');
     const cancelCompanyModalBtn = document.getElementById('cancelCompanyModalBtn');
     const saveCompanyModalBtn = document.getElementById('saveCompanyModalBtn');
@@ -2073,6 +2114,32 @@ function closeCompanyModal() {
   companyEditNotesInput.value = '';
 }
 
+function openSpendItAccountModal() {
+  createSpendItAccountError.hidden = true;
+  createSpendItAccountError.textContent = '';
+  spendItAccountModalBackdrop.classList.add('open');
+  spendItAccountModalBackdrop.setAttribute('aria-hidden', 'false');
+
+  setTimeout(() => newSpendItAccountName.focus(), 0);
+}
+
+function closeSpendItAccountModal() {
+  if (isCreatingSpendItAccount) return;
+
+  createSpendItAccountForm.reset();
+  newSpendItAccountInitial.value = '0';
+  newSpendItAccountColor.value = '#24e384';
+  createSpendItAccountError.hidden = true;
+  createSpendItAccountError.textContent = '';
+  spendItAccountModalBackdrop.classList.remove('open');
+  spendItAccountModalBackdrop.setAttribute('aria-hidden', 'true');
+}
+
+function showSpendItAccountCreationError(message) {
+  createSpendItAccountError.textContent = message;
+  createSpendItAccountError.hidden = false;
+}
+
 async function saveCompanyEdits() {
   const oldName = companyOriginalNameInput.value.trim();
   const newName = companyEditNameInput.value.trim();
@@ -2213,6 +2280,80 @@ setTimeout(() => {
 
   closeCompanyModalBtn?.addEventListener('click', closeCompanyModal);
   cancelCompanyModalBtn?.addEventListener('click', closeCompanyModal);
+  closeSpendItAccountModalBtn?.addEventListener(
+    'click',
+    closeSpendItAccountModal
+  );
+  cancelSpendItAccountModalBtn?.addEventListener(
+    'click',
+    closeSpendItAccountModal
+  );
+  createSpendItAccountForm?.addEventListener(
+    'submit',
+    async event => {
+      event.preventDefault();
+
+      if (isCreatingSpendItAccount) return;
+
+      const name = newSpendItAccountName.value.trim();
+
+      if (!name) {
+        showSpendItAccountCreationError(
+          'Please enter an account name.'
+        );
+        newSpendItAccountName.focus();
+        return;
+      }
+
+      if (
+        typeof window.createSpendItAccountForEarnIt !==
+        'function'
+      ) {
+        showSpendItAccountCreationError(
+          'Spending account creation is unavailable. Please try again.'
+        );
+        return;
+      }
+
+      isCreatingSpendItAccount = true;
+      createSpendItAccountSubmitBtn.disabled = true;
+      createSpendItAccountSubmitBtn.textContent =
+        'Creating account...';
+      createSpendItAccountError.hidden = true;
+
+      try {
+        const account =
+          await window.createSpendItAccountForEarnIt({
+            name,
+            type: newSpendItAccountType.value,
+            initial: Number(
+              newSpendItAccountInitial.value || 0
+            ),
+            color: newSpendItAccountColor.value
+          });
+
+        document.getElementById(
+          'spendItAccountSelect'
+        ).value = account.id;
+        isCreatingSpendItAccount = false;
+        closeSpendItAccountModal();
+      } catch (error) {
+        console.error(
+          'Could not create Spending account from Income:',
+          error
+        );
+        showSpendItAccountCreationError(
+          error.message ||
+          'Could not create the Spending account. Please try again.'
+        );
+      } finally {
+        isCreatingSpendItAccount = false;
+        createSpendItAccountSubmitBtn.disabled = false;
+        createSpendItAccountSubmitBtn.textContent =
+          'Create Spending Account';
+      }
+    }
+  );
   closeDeleteEntryModalBtn
   ?.addEventListener(
     'click',
@@ -2263,6 +2404,14 @@ document.addEventListener(
       closeCompanyModal();
     }
   });
+  spendItAccountModalBackdrop?.addEventListener(
+    'click',
+    event => {
+      if (event.target === spendItAccountModalBackdrop) {
+        closeSpendItAccountModal();
+      }
+    }
+  );
 
 
 rangeSelect?.addEventListener('change', () => {
@@ -2445,6 +2594,23 @@ const entryId =
   currentId ||
   crypto.randomUUID();
 
+  const availableSpendItAccounts =
+    typeof window.getSpendItAccountsForEarnIt === 'function'
+      ? window.getSpendItAccountsForEarnIt()
+      : [];
+  const selectedSpendItAccountId =
+    String(
+      formData.get('spendItAccountId') || ''
+    ).trim();
+
+  if (
+    !selectedSpendItAccountId &&
+    !availableSpendItAccounts.length
+  ) {
+    openSpendItAccountModal();
+    return;
+  }
+
   const selectedColor = String(formData.get('color') || '#7c99ff');
   const existingCompanyMeta = finalJob ? getCompanySettings(finalJob, selectedColor) : { color: selectedColor, notes: '' };
 
@@ -2463,9 +2629,7 @@ paidTime:
   ),
 
 spendItAccountId:
-  formData.get(
-    'spendItAccountId'
-  ),
+  selectedSpendItAccountId,
 
 spendItRecordId:
   existingEntry

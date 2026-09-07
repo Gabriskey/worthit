@@ -335,6 +335,51 @@
   </div>
 </div>
 
+<div id="spendItAccountModalBackdrop" class="modal-backdrop" aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="spendItAccountModalTitle">
+    <div class="modal-header">
+      <h3 id="spendItAccountModalTitle">No Spending account available</h3>
+      <button class="btn" type="button" id="closeSpendItAccountModalBtn">Close</button>
+    </div>
+
+    <p class="hint">Create a Spending account first so this income has somewhere to be saved.</p>
+
+    <form class="form" id="createSpendItAccountForm">
+      <div class="field">
+        <label for="newSpendItAccountName">Account name</label>
+        <input id="newSpendItAccountName" type="text" placeholder="Ex. BDO Savings" required>
+      </div>
+
+      <div class="field">
+        <label for="newSpendItAccountType">Account type</label>
+        <select id="newSpendItAccountType">
+          <option>general</option>
+          <option>cash</option>
+          <option>credit card</option>
+          <option>savings account</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="newSpendItAccountInitial">Initial value</label>
+        <input id="newSpendItAccountInitial" type="number" step="0.01" value="0">
+      </div>
+
+      <div class="field">
+        <label for="newSpendItAccountColor">Color</label>
+        <input id="newSpendItAccountColor" type="color" value="#24e384">
+      </div>
+
+      <p class="hint" id="createSpendItAccountError" hidden></p>
+
+      <div class="modal-actions">
+        <button class="btn" type="button" id="cancelSpendItAccountModalBtn">Cancel</button>
+        <button class="btn primary" id="createSpendItAccountSubmitBtn" type="submit">Create Spending Account</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <div
   id="deleteEntryModalBackdrop"
   class="modal-backdrop"
