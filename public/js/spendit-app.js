@@ -1024,12 +1024,15 @@ if (!accounts.length) {
     const preset = getAccountPreset(account);
     const usesLightText = preset?.textColor === '#FFFFFF';
     const presetClass = preset ? ' is-preset' : '';
+    const eyeUsesLightIcon = !preset || usesLightText;
     const presetStyle = preset
-      ? ` style="--account-card-color:${preset.color};--account-card-text:${preset.textColor};--account-card-button-bg:${usesLightText ? '#FFFFFF' : '#061313'};--account-card-button-text:${usesLightText ? '#061313' : '#FFFFFF'}"`
+      ? ` style="--account-card-color:${preset.color};--account-card-text:${preset.textColor}"`
       : '';
+    const isEnabled = accountIsEnabled(account.id);
+    const toggleLabel = `${isEnabled ? 'Hide' : 'Show'} ${account.name}`;
 
     return `
-<div class="dashboard-account-card${presetClass} ${accountIsEnabled(account.id) ? 'active' : ''}"${presetStyle} onclick="toggleAccountForReports('${account.id}')">
+<div class="dashboard-account-card${presetClass} ${isEnabled ? 'active' : ''}"${presetStyle} role="button" tabindex="0" onclick="openAccountPage('${account.id}')" onkeydown="if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); openAccountPage('${account.id}'); }">
       <div class="dashboard-account-top">
         <div>
           <div class="dashboard-account-name">
@@ -1038,7 +1041,9 @@ if (!accounts.length) {
           </div>
           <div class="dashboard-account-type">${escapeHtml(account.type)}</div>
         </div>
-        <button class="btn account-open-btn" type="button" onclick="event.stopPropagation(); openAccountPage('${account.id}')">Open</button>
+        <button class="btn account-toggle-btn${eyeUsesLightIcon ? ' light-icon' : ''}" type="button" title="${escapeHtml(toggleLabel)}" aria-label="${escapeHtml(toggleLabel)}" onclick="event.stopPropagation(); toggleAccountForReports('${account.id}')">
+          <img src="../earnit/assets/${isEnabled ? 'eye_open.png' : 'eye_closed.png'}" alt="" class="account-eye-icon">
+        </button>
       </div>
       <div class="dashboard-account-balance">${money(accountBalance(account.id))}</div>
     </div>

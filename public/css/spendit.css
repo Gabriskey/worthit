@@ -558,19 +558,6 @@ textarea:focus {
   box-shadow: 0 0 0 4px rgba(215,169,88,.08);
 }
 
-.account-open-btn {
-  background: #9fcdf5;
-  color: #050606;
-  border: 0;
-  font-weight: 900;
-  padding: 8px 12px;
-  border-radius: 12px;
-}
-
-.account-open-btn:hover {
-  background: #b3d9f8;
-}
-
 .stat-label-row {
   display: flex;
   align-items: center;
@@ -750,10 +737,10 @@ textarea:focus {
 }
 .add-account-card {
   min-height: 130px;
-  border: 1px solid rgba(215,169,88,.55);
+  border: 1px solid rgba(244,240,232,.22);
   border-radius: 14px;
-  background: rgba(215,169,88,.10);
-  color: #d7a958;
+  background: transparent;
+  color: var(--text-secondary);
 
   display: flex;
   align-items: center;
@@ -765,8 +752,8 @@ textarea:focus {
 }
 
 .add-account-card:hover {
-  border-color: #d7a958;
-  background: rgba(215,169,88,.16);
+  border-color: rgba(244,240,232,.48);
+  background: rgba(255,255,255,.03);
   transform: translateY(-2px);
 }
 
@@ -967,11 +954,16 @@ textarea:focus {
   background: rgba(255,255,255,.025);
   padding: 14px;
   cursor: pointer;
+  transition: transform .18s ease, border-color .18s ease;
+}
+
+.dashboard-account-card:hover {
+  transform: translateY(-2px);
 }
 
 .dashboard-account-card.active {
-  border-color: rgba(215,169,88,.8);
-  box-shadow: 0 0 0 3px rgba(215,169,88,.12);
+  border-color: #FFFFFF;
+  box-shadow: none;
 }
 
 .dashboard-account-card.is-preset {
@@ -981,8 +973,8 @@ textarea:focus {
 }
 
 .dashboard-account-card.is-preset.active {
-  border-color: var(--account-card-text);
-  box-shadow: 0 0 0 3px rgba(255,255,255,.28);
+  border-color: #FFFFFF;
+  box-shadow: none;
 }
 
 .dashboard-account-card.is-preset .account-dot {
@@ -999,9 +991,42 @@ textarea:focus {
   color: inherit;
 }
 
-.dashboard-account-card.is-preset .account-open-btn {
-  background: var(--account-card-button-bg);
-  color: var(--account-card-button-text);
+.account-toggle-btn {
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
+  padding: 0;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.account-toggle-btn:hover {
+  background: transparent !important;
+  border: none !important;
+  transform: scale(1.08);
+}
+
+.account-toggle-btn:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
+}
+
+.account-eye-icon {
+  width: 22px;
+  height: 18px;
+  object-fit: contain;
+  display: block;
+  margin: 3px auto 0;
+  pointer-events: none;
+  transition: filter .2s ease, opacity .2s ease;
+}
+
+.account-toggle-btn.light-icon .account-eye-icon {
+  filter: brightness(0) invert(1) drop-shadow(0 0 2px rgba(255,255,255,.35));
 }
 
 .dashboard-account-top {
