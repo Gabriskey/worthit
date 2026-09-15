@@ -101,6 +101,18 @@ const categories = [
   { name:'Others', icon:'☰', color:'#74766F', subs:['Missing'] }
 ];
 
+const BANK_PRESETS = Object.freeze([
+  { name: 'GCash', color: '#027CFF', textColor: '#FFFFFF' },
+  { name: 'BPI', color: '#A42D31', textColor: '#FFFFFF' },
+  { name: 'Wise', color: '#9EE771', textColor: '#07130A' },
+  { name: 'PayPal', color: '#0E319F', textColor: '#FFFFFF' },
+  { name: 'GoTyme', color: '#00F0FB', textColor: '#061313' }
+]);
+const BANK_PRESET_ACCOUNT_TYPES = new Set([
+  'credit card',
+  'savings account'
+]);
+
 let accounts = loadAccounts();
 let records = loadRecords();
 let ui = loadUi();
@@ -109,6 +121,7 @@ let recordType = 'income';
 let amountBuffer = '';
 let currentPageId = ui.currentPageId || 'dashboardPage';
 let editingRecordId = null;
+let selectedBankPresetName = '';
 
 let editingTransferId = null;
 let pendingDelete = null;
@@ -288,11 +301,6 @@ function accountBalance(accountId){
   return balance;
 }
 
-document.querySelectorAll('[data-page]').forEach(btn => {
-  btn.addEventListener('click', () => setPage(btn.dataset.page));
-});
-
-
 document.querySelectorAll('[data-range]').forEach(btn => {
   btn.addEventListener('click', () => setDashboardRange(btn.dataset.range));
 });
@@ -312,20 +320,19 @@ document.querySelectorAll('[data-spend-mode]').forEach(btn => {
 });
 
 function setPage(pageId){
+  if (pageId !== 'accountDetailPage') {
+    pageId = 'dashboardPage';
+  }
+
   currentPageId = pageId;
 
   const inAccountPage = pageId === 'dashboardPage' || pageId === 'accountDetailPage';
-const isGraphPage = pageId === 'graphPage';
 
   document.querySelectorAll('.page').forEach(p => {
     p.classList.toggle('active', p.id === pageId);
   });
 
-  document.querySelectorAll('[data-page]').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.page === pageId);
-  });
-
-  const hideHero = pageId === 'accountDetailPage' || pageId === 'accountsPage' || isGraphPage;
+  const hideHero = pageId === 'accountDetailPage';
   document.getElementById('mainHero').style.display = hideHero ? 'none' : '';
 
   document.getElementById('quickAddBtn').style.display = inAccountPage ? 'grid' : 'none';
@@ -334,12 +341,6 @@ const isGraphPage = pageId === 'graphPage';
     toggleQuick(false);
   }
 
-  document.body.classList.toggle('graph-mode', isGraphPage);
-
-if (isGraphPage) {
-  setTimeout(renderCharts, 50);
-}
-window.updateWorthItSubNavigation?.(pageId);
 saveUi();
 }
 
@@ -351,7 +352,6 @@ function render(){
   }
   saveUi();
   renderSummary();
-  renderAccounts();
   renderRecords();
   renderAccountDetail();
   populateAccountSelects();
@@ -376,65 +376,14 @@ function renderSummary(){
   setText('statTransfers', selectedRecords.filter(r => r.type === 'transfer').length);
 }
 
-function accountMarkup(account, mode = 'home'){
-  const openButton = `<button class="btn account-open-btn" type="button" onclick="event.stopPropagation(); openAccountPage('${account.id}')">Open</button>`;
-
-  return `<div class="account-card ${accountIsEnabled(account.id) ? 'active' : ''}" onclick="toggleAccountForReports('${account.id}')">
-    <div class="account-top">
-      <div>
-        <div class="account-name">
-          <span class="account-dot" style="background:${account.color}"></span>
-          ${escapeHtml(account.name)}
-        </div>
-        <div class="account-type">${escapeHtml(account.type)}</div>
-      </div>
-
-      ${openButton}
-    </div>
-
-    <div class="account-value">${money(accountBalance(account.id))}</div>
-  </div>`;
-}
-
 function openAccountPage(id){
   selectedAccountId = id;
   setPage('accountDetailPage');
   render();
 }
-function renderAccounts(){
-  const empty = '<div class="empty">No accounts yet. Create your first account.</div>';
-  const accountsList = document.getElementById('accountsList');
-  const accountsListFull = document.getElementById('accountsListFull');
-
-  if (accountsList) {
-    accountsList.innerHTML = accounts.length
-    ? accounts.map(account => accountMarkup(account, 'home')).join('') + `
-      <button class="add-account-card" type="button" onclick="openAccountModal()">
-    <span>Add account</span>
-    <span class="add-account-plus">＋</span>
-  </button>
-    `
-    : `
-      <button class="add-account-card" type="button" onclick="openAccountModal()">
-        <span>Add Account</span>
-        <span class="add-account-plus">+</span>
-      </button>
-    `;
-  }
-
-  if (accountsListFull) {
-    accountsListFull.innerHTML = accounts.length
-      ? accounts.map(account => accountMarkup(account, 'accounts')).join('')
-      : empty;
-  }
-}
-function selectAccount(id){
-  selectedAccountId = id;
-  render();
-}
 
 function backToAccounts(){
-  setPage('accountsPage');
+  setPage('dashboardPage');
   render();
 }
 
@@ -1071,8 +1020,16 @@ if (!accounts.length) {
   return;
 }
 
-  wrap.innerHTML = accounts.map(account => `
-<div class="dashboard-account-card ${accountIsEnabled(account.id) ? 'active' : ''}" onclick="toggleAccountForReports('${account.id}')">
+  wrap.innerHTML = accounts.map(account => {
+    const preset = getAccountPreset(account);
+    const usesLightText = preset?.textColor === '#FFFFFF';
+    const presetClass = preset ? ' is-preset' : '';
+    const presetStyle = preset
+      ? ` style="--account-card-color:${preset.color};--account-card-text:${preset.textColor};--account-card-button-bg:${usesLightText ? '#FFFFFF' : '#061313'};--account-card-button-text:${usesLightText ? '#061313' : '#FFFFFF'}"`
+      : '';
+
+    return `
+<div class="dashboard-account-card${presetClass} ${accountIsEnabled(account.id) ? 'active' : ''}"${presetStyle} onclick="toggleAccountForReports('${account.id}')">
       <div class="dashboard-account-top">
         <div>
           <div class="dashboard-account-name">
@@ -1085,7 +1042,8 @@ if (!accounts.length) {
       </div>
       <div class="dashboard-account-balance">${money(accountBalance(account.id))}</div>
     </div>
-  `).join('') + `
+  `;
+  }).join('') + `
   <button class="add-account-card" type="button" onclick="openAccountModal()">
     <span>Add account</span>
     <span class="add-account-plus">＋</span>
@@ -1661,6 +1619,82 @@ function chooseCategory(category, subcategory = ''){
   closeCategoryPicker();
 }
 
+function accountColor(account){
+  return account?.color || '#24e384';
+}
+
+function accountOptionTextColor(color){
+  const hex = String(color || '').replace('#', '');
+
+  if (!/^[0-9a-f]{6}$/i.test(hex)) return '#f4f0e8';
+
+  const red = parseInt(hex.slice(0, 2), 16);
+  const green = parseInt(hex.slice(2, 4), 16);
+  const blue = parseInt(hex.slice(4, 6), 16);
+  const brightness = (red * 299 + green * 587 + blue * 114) / 1000;
+
+  return brightness >= 155 ? '#061313' : '#FFFFFF';
+}
+
+function closeAccountPickers(exceptId = ''){
+  document.querySelectorAll('.account-picker.open').forEach(picker => {
+    if (picker.id !== exceptId) picker.classList.remove('open');
+  });
+}
+
+function renderAccountPicker(pickerId, selectId){
+  const picker = document.getElementById(pickerId);
+  const select = document.getElementById(selectId);
+
+  if (!picker || !select) return;
+
+  const selected = accounts.find(account => account.id === select.value) || accounts[0];
+
+  if (!selected) {
+    picker.innerHTML = '<div class="account-picker-empty">No accounts available.</div>';
+    return;
+  }
+
+  select.value = selected.id;
+  const selectedColor = accountColor(selected);
+
+  picker.innerHTML = `
+    <button class="account-picker-trigger" type="button" aria-expanded="false">
+      <span class="account-picker-swatch" style="background:${selectedColor}"></span>
+      <span>${escapeHtml(selected.name)} · ${escapeHtml(selected.type)}</span>
+      <span class="account-picker-chevron" aria-hidden="true">⌄</span>
+    </button>
+    <div class="account-picker-menu" role="listbox" aria-label="Choose account">
+      ${accounts.map(account => {
+        const color = accountColor(account);
+        const textColor = accountOptionTextColor(color);
+        const selectedClass = account.id === selected.id ? ' selected' : '';
+
+        return `<button class="account-picker-option${selectedClass}" type="button" role="option" aria-selected="${account.id === selected.id}" data-account-id="${escapeHtml(account.id)}" style="background:${color};color:${textColor}">
+          <span>${escapeHtml(account.name)}</span>
+          <small>${escapeHtml(account.type)}</small>
+        </button>`;
+      }).join('')}
+    </div>
+  `;
+
+  const trigger = picker.querySelector('.account-picker-trigger');
+  trigger.addEventListener('click', () => {
+    const willOpen = !picker.classList.contains('open');
+    closeAccountPickers(pickerId);
+    picker.classList.toggle('open', willOpen);
+    trigger.setAttribute('aria-expanded', String(willOpen));
+  });
+
+  picker.querySelectorAll('[data-account-id]').forEach(option => {
+    option.addEventListener('click', () => {
+      select.value = option.dataset.accountId;
+      picker.classList.remove('open');
+      renderAccountPicker(pickerId, selectId);
+    });
+  });
+}
+
 function populateAccountSelects(){
   const accountOptions = accounts
     .map(a => `<option value="${a.id}">${escapeHtml(a.name)} · ${escapeHtml(a.type)}</option>`)
@@ -1674,11 +1708,87 @@ function populateAccountSelects(){
   if (selectedAccountId && document.getElementById('recordAccount')) {
     document.getElementById('recordAccount').value = selectedAccountId;
   }
+
+  renderAccountPicker('recordAccountPicker', 'recordAccount');
+  renderAccountPicker('recordFromAccountPicker', 'recordFromAccount');
+  renderAccountPicker('recordToAccountPicker', 'recordToAccount');
+}
+
+function findBankPreset(name){
+  return BANK_PRESETS.find(preset => preset.name === name) || null;
+}
+
+function isBankPresetAccountType(type){
+  return BANK_PRESET_ACCOUNT_TYPES.has(String(type || '').toLowerCase());
+}
+
+function getAccountPreset(account){
+  const preset = findBankPreset(account?.name);
+
+  return preset && isBankPresetAccountType(account.type) &&
+    String(account.color || '').toUpperCase() === preset.color
+    ? preset
+    : null;
+}
+
+function setSelectedBankPreset(name){
+  const preset = findBankPreset(name);
+  selectedBankPresetName = preset?.name || '';
+
+  if (preset) {
+    accountName.value = preset.name;
+    accountColor.value = preset.color;
+  }
+
+  renderAccountPresetPicker();
+}
+
+function renderAccountPresetPicker(){
+  const field = document.getElementById('accountPresetField');
+  const options = document.getElementById('accountPresetOptions');
+  const hint = document.getElementById('accountPresetHint');
+  const typeSupportsPresets = isBankPresetAccountType(accountType.value);
+  const preset = findBankPreset(selectedBankPresetName);
+
+  field.hidden = !typeSupportsPresets;
+
+  if (!typeSupportsPresets) {
+    selectedBankPresetName = '';
+    accountName.disabled = false;
+    accountColor.disabled = false;
+    return;
+  }
+
+  options.innerHTML = BANK_PRESETS.map(item => `
+    <button class="account-preset-option${item.name === selectedBankPresetName ? ' selected' : ''}" type="button" data-preset-name="${item.name}" style="background:${item.color};color:${item.textColor}">
+      ${item.name}
+    </button>
+  `).join('');
+
+  options.querySelectorAll('[data-preset-name]').forEach(button => {
+    button.addEventListener('click', () => {
+      setSelectedBankPreset(
+        button.dataset.presetName === selectedBankPresetName
+          ? ''
+          : button.dataset.presetName
+      );
+    });
+  });
+
+  accountName.disabled = Boolean(preset);
+  accountColor.disabled = Boolean(preset);
+  hint.textContent = preset
+    ? `${preset.name} uses its fixed preset name and color. Click it again to use custom details.`
+    : 'Choose a preset to apply its fixed name and color.';
 }
 
 function openAccountModal(){
   editingAccountId = null;
   setAccountDeleteVisibility(false);
+  selectedBankPresetName = '';
+  document.getElementById('accountForm').reset();
+  document.getElementById('accountColor').value = '#24e384';
+  renderAccountPresetPicker();
   document.getElementById('accountModalTitle').textContent = 'Create account';
   document.getElementById('accountSubmitBtn').textContent = 'Create Account';
   document.getElementById('accountModalBackdrop').classList.add('open');
@@ -1687,10 +1797,14 @@ function openAccountModal(){
 
 function closeAccountModal(){
   editingAccountId = null;
+  selectedBankPresetName = '';
   setAccountDeleteVisibility(false);
   document.getElementById('accountModalBackdrop').classList.remove('open');
   document.getElementById('accountForm').reset();
   document.getElementById('accountColor').value = '#24e384';
+  accountName.disabled = false;
+  accountColor.disabled = false;
+  renderAccountPresetPicker();
 }
 
 function openBalanceChoiceModal(){
@@ -1780,6 +1894,8 @@ function editAccount(id){
   accountType.value = account.type;
   accountInitial.value = account.initial;
   accountColor.value = account.color;
+  selectedBankPresetName = getAccountPreset(account)?.name || '';
+  renderAccountPresetPicker();
 
   document.getElementById('accountModalTitle').textContent = 'Edit account';
   document.getElementById('accountSubmitBtn').textContent = 'Update Account';
@@ -1795,6 +1911,13 @@ const accountData = {
   color: accountColor.value
 };
 
+const selectedPreset = findBankPreset(selectedBankPresetName);
+
+if (selectedPreset) {
+  accountData.name = selectedPreset.name;
+  accountData.color = selectedPreset.color;
+}
+
 if (!accountData.name) return;
 
 if (editingAccountId) {
@@ -1808,6 +1931,16 @@ if (editingAccountId) {
 saveAccounts();
 closeAccountModal();
 render();
+});
+
+accountType.addEventListener('change', () => {
+  renderAccountPresetPicker();
+});
+
+document.addEventListener('click', event => {
+  if (!event.target.closest('.account-picker')) {
+    closeAccountPickers();
+  }
 });
 
 function toggleQuick(force){
@@ -1987,6 +2120,7 @@ function editRecord(id){
   updateAmountPreview();
 
   document.getElementById('recordAccount').value = record.accountId;
+  renderAccountPicker('recordAccountPicker', 'recordAccount');
   document.getElementById('recordCategory').value = `${record.category}|${record.subcategory || ''}`;
   updateCategoryPickerButton();
   document.getElementById('recordDescription').value = record.description || '';
@@ -2031,6 +2165,8 @@ function editTransfer(id){
 
   document.getElementById('recordFromAccount').value = transfer.fromId;
   document.getElementById('recordToAccount').value = transfer.toId;
+  renderAccountPicker('recordFromAccountPicker', 'recordFromAccount');
+  renderAccountPicker('recordToAccountPicker', 'recordToAccount');
   document.getElementById('recordDescription').value = transfer.description || '';
   document.getElementById('recordDate').value = transfer.date || nowDate();
   document.getElementById('recordTime').value = transfer.time || nowTime();

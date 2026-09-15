@@ -149,6 +149,28 @@
               <div id="spendingMixList" class="spending-mix-list"></div>
             </div>
           </section>
+
+          <section class="card dashboard-chart-card spending-over-time-card">
+            <div class="toolbar">
+              <h2>SPENDING OVER TIME</h2>
+            </div>
+
+            <section class="charts-grid">
+              <section class="card chart-card">
+                <div class="toolbar">
+                  <h2>🥧 Expenses by Category</h2>
+                </div>
+                <canvas id="categoryPieChart"></canvas>
+              </section>
+
+              <section class="card chart-card">
+                <div class="toolbar">
+                  <h2>📈 Spending This Week</h2>
+                </div>
+                <canvas id="weeklyTrendChart"></canvas>
+              </section>
+            </section>
+          </section>
         </main>
       </section>
     </section>
@@ -194,40 +216,6 @@
   </section>
 </section>
 
-<section id="graphPage" class="page">
-  <section class="card">
-    <div class="toolbar">
-      <h2>GRAPH</h2>
-    </div>
-
-    <section class="charts-grid">
-      <section class="card chart-card">
-        <div class="toolbar">
-          <h2>🥧 Expenses by Category</h2>
-        </div>
-        <canvas id="categoryPieChart"></canvas>
-      </section>
-
-      <section class="card chart-card">
-        <div class="toolbar">
-          <h2>📈 Spending This Week</h2>
-        </div>
-        <canvas id="weeklyTrendChart"></canvas>
-      </section>
-    </section>
-  </section>
-</section>
-
-  <section id="accountsPage" class="page">
-    <section class="card">
-      <div class="toolbar">
-        <h2>All Accounts</h2>
-        <button class="btn primary" type="button" onclick="openAccountModal()">Create Account</button>
-      </div>
-      <div id="accountsListFull" class="accounts-list"></div>
-    </section>
-  </section>
-
 </div>
 
 <div class="quick-action-overlay"
@@ -243,6 +231,11 @@ id="quickOverlay" onclick="toggleQuick(false)"></div>
 <div class="modal-header"><h3 id="accountModalTitle">Create account</h3><button class="btn" onclick="closeAccountModal()">Close</button></div>    <form class="form" id="accountForm">
       <div><label>Account name</label><input id="accountName" placeholder="Ex. BDO Savings" required></div>
       <div><label>Account type</label><select id="accountType"><option>general</option><option>cash</option><option>credit card</option><option>savings account</option></select></div>
+      <div id="accountPresetField" class="account-preset-field" hidden>
+        <label>Choose bank / provider</label>
+        <div id="accountPresetOptions" class="account-preset-options"></div>
+        <p id="accountPresetHint" class="account-preset-hint"></p>
+      </div>
       <div><label>Initial value</label><input id="accountInitial" type="number" step="0.01" placeholder="0"></div>
       <div><label>Color</label><input id="accountColor" type="color" value="#24e384"></div>
       <div class="modal-actions account-modal-actions">
@@ -297,19 +290,22 @@ id="quickOverlay" onclick="toggleQuick(false)"></div>
           <div class="record-info-row normal-record-row">
             <div>
               <label>Account</label>
-              <select id="recordAccount"></select>
+              <select id="recordAccount" class="account-select-native" aria-hidden="true" tabindex="-1"></select>
+              <div id="recordAccountPicker" class="account-picker"></div>
             </div>
           </div>
 
           <div class="transfer-record-row">
             <div>
               <label>From Account</label>
-              <select id="recordFromAccount"></select>
+              <select id="recordFromAccount" class="account-select-native" aria-hidden="true" tabindex="-1"></select>
+              <div id="recordFromAccountPicker" class="account-picker"></div>
             </div>
 
             <div>
               <label>To Account</label>
-              <select id="recordToAccount"></select>
+              <select id="recordToAccount" class="account-select-native" aria-hidden="true" tabindex="-1"></select>
+              <div id="recordToAccountPicker" class="account-picker"></div>
             </div>
           </div>
 

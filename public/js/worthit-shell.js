@@ -31,20 +31,7 @@ const APP_CONFIG = {
 
   spendit: {
     name: "Spending",
-    pages: [
-      {
-        label: "Dashboard",
-        pageId: "dashboardPage"
-      },
-      {
-        label: "Accounts",
-        pageId: "accountsPage"
-      },
-      {
-        label: "Graph",
-        pageId: "graphPage"
-      }
-    ]
+    pages: []
   },
 
   planit: {
