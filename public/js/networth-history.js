@@ -1,8 +1,32 @@
-/* Client-side, immutable Net Worth history capture. */
+/* Client-side Net Worth history capture for the current eligible Manila day. */
 
 (() => {
   const FIRST_SNAPSHOT_DATE = "2026-09-15"
   const MANILA_TIME_ZONE = "Asia/Manila"
+  const NET_WORTH_SOURCE_KEYS = Object.freeze({
+    spendit: new Set([
+      "expensepath-accounts-v1",
+      "expensepath-records-v1"
+    ]),
+    planit: new Set([
+      "financePlanner",
+      "worthitPayoffs"
+    ])
+  })
+
+  function roundMoney(value) {
+    const amount = Number(value)
+
+    if (!Number.isFinite(amount)) {
+      return 0
+    }
+
+    const rounded = Math.round(
+      (Math.abs(amount) + Number.EPSILON) * 100
+    ) / 100
+
+    return amount < 0 ? -rounded : rounded
+  }
 
   function getManilaDate(now = new Date()) {
     const parts = new Intl.DateTimeFormat("en-CA", {
@@ -71,53 +95,57 @@
   function buildSnapshot(result, asOfDate) {
     return {
       date: asOfDate,
-      netWorth: result.netWorth,
-      totalAccountBalances: result.totalAccountBalances,
-      remainingLiabilities: result.remainingLiabilities,
+      netWorth: roundMoney(result.netWorth),
+      totalAccountBalances: roundMoney(result.totalAccountBalances),
+      remainingLiabilities: roundMoney(result.remainingLiabilities),
       timezone: MANILA_TIME_ZONE,
       calculationVersion: 1
     }
   }
 
+  function isNetWorthSourceChange(change) {
+    const appName = String(change?.appName || "")
+    const storageKey = String(change?.storageKey || "")
+
+    return NET_WORTH_SOURCE_KEYS[appName]?.has(storageKey) || false
+  }
+
   async function captureNetWorthSnapshot({
     userId,
     asOfDate,
-    loadUserAppState,
-    createUserNetWorthSnapshot,
+    currentDate = getManilaDate(),
+    refreshUserNetWorthSnapshot,
     calculateNetWorth
   }) {
-    if (!isEligibleSnapshotDate(asOfDate)) {
+    if (
+      asOfDate !== currentDate ||
+      !isEligibleSnapshotDate(asOfDate)
+    ) {
       return { status: "ineligible" }
     }
 
-    const [spendItState, planItState] = await Promise.all([
-      loadUserAppState(userId, "spendit"),
-      loadUserAppState(userId, "planit")
-    ])
-
-    if (spendItState === null && planItState === null) {
-      return { status: "skipped" }
-    }
-
-    const result = calculateNetWorth({
-      accounts: arrayStorageValue(spendItState, "expensepath-accounts-v1"),
-      records: arrayStorageValue(spendItState, "expensepath-records-v1"),
-      financePlanner: objectStorageValue(planItState, "financePlanner"),
-      payoffs: arrayStorageValue(planItState, "worthitPayoffs"),
-      asOfDate
-    })
-    const snapshot = buildSnapshot(result, asOfDate)
-    const created = await createUserNetWorthSnapshot(
+    return refreshUserNetWorthSnapshot(
       userId,
       asOfDate,
-      snapshot
-    )
+      (spendItState, planItState) => {
+        if (spendItState === null && planItState === null) {
+          return null
+        }
 
-    return {
-      status: created ? "created" : "existing",
-      result,
-      snapshot
-    }
+        const result = calculateNetWorth({
+          accounts: arrayStorageValue(spendItState, "expensepath-accounts-v1"),
+          records: arrayStorageValue(spendItState, "expensepath-records-v1"),
+          financePlanner: objectStorageValue(planItState, "financePlanner"),
+          payoffs: arrayStorageValue(planItState, "worthitPayoffs"),
+          asOfDate
+        })
+
+        return {
+          result,
+          snapshot: buildSnapshot(result, asOfDate)
+        }
+      }
+    )
   }
 
   function initializeNetWorthHistoryCapture() {
@@ -125,29 +153,61 @@
       import("./auth.js"),
       import("./database.js")
     ]).then(([{ watchAuthState }, {
-      loadUserAppState,
-      createUserNetWorthSnapshot
+      refreshUserNetWorthSnapshot
     }]) => {
       const capturedUserIds = new Set()
 
+      const refreshTodayForUser = async user => {
+        const currentDate = getManilaDate()
+
+        try {
+          const outcome = await captureNetWorthSnapshot({
+            userId: user.uid,
+            asOfDate: currentDate,
+            currentDate,
+            refreshUserNetWorthSnapshot,
+            calculateNetWorth: globalThis.WorthItNetWorthCalculator.calculateNetWorth
+          })
+
+          if (
+            outcome.status === "created" ||
+            outcome.status === "updated"
+          ) {
+            window.dispatchEvent(
+              new CustomEvent("worthit:networth-snapshot-refreshed")
+            )
+          }
+        } catch (error) {
+          console.warn("Net Worth history capture failed:", error)
+        }
+      }
+
+      let currentUser = null
+
       watchAuthState(async user => {
+        currentUser = user
+
         if (!user || capturedUserIds.has(user.uid)) {
           return
         }
 
         capturedUserIds.add(user.uid)
 
-        try {
-          await captureNetWorthSnapshot({
-            userId: user.uid,
-            asOfDate: getManilaDate(),
-            loadUserAppState,
-            createUserNetWorthSnapshot,
-            calculateNetWorth: globalThis.WorthItNetWorthCalculator.calculateNetWorth
-          })
-        } catch (error) {
-          console.warn("Net Worth history capture failed:", error)
+        await refreshTodayForUser(user)
+      })
+
+      window.addEventListener("worthit:cloud-storage-saved", event => {
+        const change = event.detail
+
+        if (
+          !currentUser ||
+          change?.userId !== currentUser.uid ||
+          !isNetWorthSourceChange(change)
+        ) {
+          return
         }
+
+        refreshTodayForUser(currentUser)
       })
     }).catch(error => {
       console.warn("Net Worth history could not start:", error)
@@ -157,6 +217,8 @@
   const api = {
     FIRST_SNAPSHOT_DATE,
     MANILA_TIME_ZONE,
+    roundMoney,
+    isNetWorthSourceChange,
     getManilaDate,
     isEligibleSnapshotDate,
     buildSnapshot,

@@ -6,15 +6,76 @@ service cloud.firestore {
       return request.auth != null && request.auth.uid == userId;
     }
 
+    function currentManilaTime() {
+      return request.time + duration.value(8, "h");
+    }
+
+    function twoDigits(value) {
+      return value < 10 ? "0" + string(value) : string(value);
+    }
+
+    function currentManilaSnapshotId() {
+      let manilaTime = currentManilaTime();
+      return string(manilaTime.year()) + "-" +
+        twoDigits(manilaTime.month()) + "-" +
+        twoDigits(manilaTime.day());
+    }
+
+    function isCurrentEligibleSnapshot(snapshotId) {
+      let manilaTime = currentManilaTime();
+      return snapshotId == currentManilaSnapshotId() &&
+        (manilaTime.day() == 1 || manilaTime.day() == 15) &&
+        snapshotId >= "2026-09-15";
+    }
+
     // Current WorthIt app data is stored in these user-owned app documents.
     match /users/{userId}/apps/{appName} {
       allow read, write: if isOwner(userId);
     }
 
-    // Net Worth history is immutable after a signed-in user creates it.
+    // Only the current eligible Manila-day snapshot may be refreshed.
     match /users/{userId}/netWorthSnapshots/{snapshotId} {
-      allow read, create: if isOwner(userId);
-      allow update, delete: if false;
+      allow read: if isOwner(userId);
+
+      allow create: if isOwner(userId) &&
+        isCurrentEligibleSnapshot(snapshotId) &&
+        request.resource.data.keys().hasOnly([
+          "date", "netWorth", "totalAccountBalances",
+          "remainingLiabilities", "capturedAt", "updatedAt",
+          "timezone", "calculationVersion"
+        ]) &&
+        request.resource.data.keys().hasAll([
+          "date", "netWorth", "totalAccountBalances",
+          "remainingLiabilities", "capturedAt", "updatedAt",
+          "timezone", "calculationVersion"
+        ]) &&
+        request.resource.data.date == snapshotId &&
+        request.resource.data.timezone == "Asia/Manila" &&
+        request.resource.data.calculationVersion == 1 &&
+        request.resource.data.netWorth is number &&
+        request.resource.data.totalAccountBalances is number &&
+        request.resource.data.remainingLiabilities is number &&
+        request.resource.data.capturedAt == request.time &&
+        request.resource.data.updatedAt == request.time;
+
+      allow update: if isOwner(userId) &&
+        isCurrentEligibleSnapshot(snapshotId) &&
+        resource.data.date == snapshotId &&
+        resource.data.timezone == "Asia/Manila" &&
+        request.resource.data.date == resource.data.date &&
+        request.resource.data.timezone == resource.data.timezone &&
+        request.resource.data.calculationVersion == resource.data.calculationVersion &&
+        request.resource.data.capturedAt == resource.data.capturedAt &&
+        request.resource.data.updatedAt == request.time &&
+        request.resource.data.netWorth is number &&
+        request.resource.data.totalAccountBalances is number &&
+        request.resource.data.remainingLiabilities is number &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          "netWorth", "totalAccountBalances",
+          "remainingLiabilities", "updatedAt"
+        ]);
+
+      allow delete: if false;
     }
   }
 }

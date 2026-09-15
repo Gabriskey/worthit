@@ -2197,6 +2197,190 @@ th.actions {
   text-align: center;
 }
 
+.networth-history-panel {
+  margin: 0 1.5rem 1.5rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 1.5rem;
+  box-shadow: var(--shadow-lg);
+}
+
+.networth-history-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.networth-history-header h2 {
+  margin: 0;
+}
+
+.networth-history-header p {
+  margin: 0.35rem 0 0;
+  color: var(--text-secondary);
+}
+
+.networth-history-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-bottom: 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--surface-2);
+}
+
+.networth-history-stat {
+  min-width: 0;
+  padding: 1rem 1.1rem;
+  border-right: 1px solid var(--border);
+}
+
+.networth-history-stat:last-child {
+  border-right: 0;
+}
+
+.networth-history-stat span {
+  display: block;
+  margin-bottom: 0.35rem;
+  color: var(--text-tertiary);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.networth-history-stat strong {
+  display: block;
+  overflow: hidden;
+  color: var(--text);
+  font-size: clamp(1rem, 2vw, 1.3rem);
+  font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.networth-history-stat:first-child strong {
+  color: var(--accent);
+}
+
+.networth-history-content {
+  min-height: 230px;
+}
+
+.networth-history-chart-wrap {
+  min-height: 250px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--surface-2);
+}
+
+.networth-history-chart {
+  display: block;
+  width: 100%;
+  height: auto;
+  min-height: 250px;
+}
+
+.networth-history-grid-line {
+  stroke: var(--border);
+  stroke-width: 1;
+  stroke-dasharray: 3 6;
+}
+
+.networth-history-zero-line {
+  stroke: var(--text-tertiary);
+  stroke-width: 1;
+  stroke-dasharray: 5 5;
+}
+
+.networth-history-line {
+  fill: none;
+  stroke: var(--accent);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 3;
+}
+
+.networth-history-point {
+  fill: var(--surface);
+  stroke: var(--accent);
+  stroke-width: 3;
+  cursor: pointer;
+  transition: r 0.15s ease, fill 0.15s ease;
+}
+
+.networth-history-point:hover,
+.networth-history-point:focus,
+.networth-history-point.is-selected {
+  fill: var(--accent);
+  r: 8;
+  outline: none;
+}
+
+.networth-history-y-label,
+.networth-history-x-label {
+  fill: var(--text-tertiary);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.networth-history-detail {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 0.9rem;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface-3);
+  color: var(--text);
+}
+
+.networth-history-detail > strong {
+  color: var(--accent);
+  font-size: 0.95rem;
+}
+
+.networth-history-detail-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.45rem 1rem;
+  font-size: 0.88rem;
+}
+
+.networth-history-detail-grid span {
+  color: var(--text-secondary);
+}
+
+.networth-history-detail-grid b {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.networth-history-state {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 0.45rem;
+  min-height: 230px;
+  padding: 1.5rem;
+  border: 1px dashed var(--border);
+  border-radius: 14px;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.networth-history-state strong {
+  color: var(--text);
+}
+
+.networth-history-state.error {
+  color: var(--danger);
+}
+
 @media (max-width: 900px) {
   .payoff-grid,
   .networth-grid {
@@ -2206,6 +2390,40 @@ th.actions {
   .payoff-mini-stats {
     flex-direction: column;
     gap: 0.25rem;
+  }
+
+  .networth-history-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .networth-history-stat:nth-child(2) {
+    border-right: 0;
+  }
+
+  .networth-history-stat:nth-child(-n + 2) {
+    border-bottom: 1px solid var(--border);
+  }
+}
+
+@media (max-width: 600px) {
+  .networth-history-panel {
+    margin-left: 1rem;
+    margin-right: 1rem;
+    padding: 1rem;
+  }
+
+  .networth-history-stat {
+    padding: 0.85rem;
+  }
+
+  .networth-history-chart-wrap,
+  .networth-history-chart {
+    min-height: 220px;
+  }
+
+  .networth-history-y-label,
+  .networth-history-x-label {
+    font-size: 11px;
   }
 }
 

@@ -54,6 +54,38 @@
       </div>
     </section>
 
+    <section class="networth-history-panel" id="networthHistory" aria-labelledby="networthHistoryTitle">
+      <div class="networth-history-header">
+        <div>
+          <h2 id="networthHistoryTitle">Net Worth Over Time</h2>
+          <p>Your net worth snapshots from the 1st and 15th.</p>
+        </div>
+      </div>
+
+      <div class="networth-history-summary" aria-label="Net Worth history summary">
+        <div class="networth-history-stat">
+          <span>Latest</span>
+          <strong id="networthHistoryLatest">—</strong>
+        </div>
+        <div class="networth-history-stat">
+          <span>Since First</span>
+          <strong id="networthHistoryChange">—</strong>
+        </div>
+        <div class="networth-history-stat">
+          <span>Change %</span>
+          <strong id="networthHistoryPercent">—</strong>
+        </div>
+        <div class="networth-history-stat">
+          <span>Snapshots</span>
+          <strong id="networthHistoryCount">—</strong>
+        </div>
+      </div>
+
+      <div id="networthHistoryContent" class="networth-history-content" aria-live="polite">
+        <div class="networth-history-state loading">Loading Net Worth history...</div>
+      </div>
+    </section>
+
     <div class="networth-grid">
       <section class="networth-panel">
   <div class="networth-section-header">
@@ -119,6 +151,7 @@
 <script src="js/shared.js"></script>
 <script src="js/worthit-modal.js"></script>
 <script src="js/networth.js"></script>
+<script src="js/networth-history-view.js"></script>
 <script src="js/worthit-shell.js"></script>
 
 <script

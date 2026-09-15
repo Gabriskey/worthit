@@ -1,7 +1,9 @@
 import {
   getFirestore,
+  collection,
   doc,
   getDoc,
+  getDocs,
   setDoc,
   runTransaction,
   serverTimestamp,
@@ -13,6 +15,25 @@ import {
 } from "./firebase.js";
 
 const db = getFirestore(app);
+
+function emitCloudStorageSaved(
+  userId,
+  appName,
+  storageKey
+) {
+  window.dispatchEvent(
+    new CustomEvent(
+      "worthit:cloud-storage-saved",
+      {
+        detail: {
+          userId,
+          appName,
+          storageKey
+        }
+      }
+    )
+  );
+}
 
 async function saveUserAppState(
   userId,
@@ -158,6 +179,12 @@ try {
     )
   );
 
+  emitCloudStorageSaved(
+    userId,
+    appName,
+    storageKey
+  );
+
 } catch (error) {
 
   window.dispatchEvent(
@@ -204,23 +231,64 @@ async function loadUserStorageKey(
   return storage[storageKey];
 }
 
-// A snapshot is created once per date and is never overwritten by the client.
-async function createUserNetWorthSnapshot(
-  userId,
-  snapshotDate,
-  snapshot
+async function loadUserNetWorthSnapshots(
+  userId
 ) {
   if (!userId) {
     throw new Error(
-      "Cannot create a Net Worth snapshot without a user ID."
+      "Cannot load Net Worth history without a user ID."
+    );
+  }
+
+  const snapshotsRef = collection(
+    db,
+    "users",
+    userId,
+    "netWorthSnapshots"
+  );
+  const snapshots = await getDocs(snapshotsRef);
+
+  return snapshots.docs.map(snapshot => snapshot.data());
+}
+
+// Today's eligible snapshot is the only history document the client can refresh.
+async function refreshUserNetWorthSnapshot(
+  userId,
+  snapshotDate,
+  buildSnapshot
+) {
+  if (!userId) {
+    throw new Error(
+      "Cannot refresh a Net Worth snapshot without a user ID."
     );
   }
 
   if (!snapshotDate) {
     throw new Error(
-      "Cannot create a Net Worth snapshot without a date."
+      "Cannot refresh a Net Worth snapshot without a date."
     );
   }
+
+  if (typeof buildSnapshot !== "function") {
+    throw new Error(
+      "Cannot refresh a Net Worth snapshot without a calculation."
+    );
+  }
+
+  const spendItRef = doc(
+    db,
+    "users",
+    userId,
+    "apps",
+    "spendit"
+  );
+  const planItRef = doc(
+    db,
+    "users",
+    userId,
+    "apps",
+    "planit"
+  );
 
   const snapshotRef = doc(
     db,
@@ -231,10 +299,34 @@ async function createUserNetWorthSnapshot(
   );
 
   return runTransaction(db, async transaction => {
-    const existing = await transaction.get(snapshotRef);
+    const [spendItState, planItState, existing] = await Promise.all([
+      transaction.get(spendItRef),
+      transaction.get(planItRef),
+      transaction.get(snapshotRef)
+    ]);
+    const outcome = await buildSnapshot(
+      spendItState.exists() ? spendItState.data().data ?? null : null,
+      planItState.exists() ? planItState.data().data ?? null : null
+    );
+
+    if (!outcome) {
+      return { status: "skipped" };
+    }
+
+    const snapshot = outcome.snapshot;
 
     if (existing.exists()) {
-      return false;
+      transaction.update(snapshotRef, {
+        netWorth: snapshot.netWorth,
+        totalAccountBalances: snapshot.totalAccountBalances,
+        remainingLiabilities: snapshot.remainingLiabilities,
+        updatedAt: serverTimestamp()
+      });
+
+      return {
+        status: "updated",
+        ...outcome
+      };
     }
 
     transaction.set(snapshotRef, {
@@ -243,11 +335,15 @@ async function createUserNetWorthSnapshot(
       totalAccountBalances: snapshot.totalAccountBalances,
       remainingLiabilities: snapshot.remainingLiabilities,
       capturedAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
       timezone: snapshot.timezone,
       calculationVersion: snapshot.calculationVersion
     });
 
-    return true;
+    return {
+      status: "created",
+      ...outcome
+    };
   });
 }
 
@@ -342,6 +438,7 @@ export {
   loadUserAppState,
   saveUserStorageKey,
   loadUserStorageKey,
-  createUserNetWorthSnapshot,
+  loadUserNetWorthSnapshots,
+  refreshUserNetWorthSnapshot,
   runUserStorageRestoreTransaction
 };
