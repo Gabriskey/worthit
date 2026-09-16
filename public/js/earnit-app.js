@@ -19,6 +19,7 @@
 
     const jobSelect = document.getElementById('jobSelect');
     const jobInput = document.getElementById('jobInput');
+    const incomeTypeSelect = document.getElementById('incomeTypeSelect');
     const editingIdInput = document.getElementById('editingId');
     const submitBtn = document.getElementById('submitBtn');
     const pages = document.querySelectorAll('.page');
@@ -291,10 +292,27 @@ function saveEntries() {
       ];
     }
 
+    const INCOME_TYPE_LABELS = {
+      salary: 'Salary / Wage',
+      sales: 'Sales',
+      project: 'Project / Gig / Task'
+    };
+
+    function normalizeIncomeType(value) {
+      return Object.prototype.hasOwnProperty.call(INCOME_TYPE_LABELS, value)
+        ? value
+        : 'salary';
+    }
+
+    function getIncomeTypeLabel(value) {
+      return INCOME_TYPE_LABELS[normalizeIncomeType(value)];
+    }
+
     function sanitizeEntry(entry) {
       return {
         id: entry.id || crypto.randomUUID(),
         job: String(entry.job || '').trim(),
+        incomeType: normalizeIncomeType(entry.incomeType),
         date: String(entry.date || '').trim(),
         salary: Number(entry.salary || 0),
         color: /^#[0-9A-Fa-f]{6}$/.test(entry.color || '') ? entry.color : '#7c99ff',
@@ -1047,7 +1065,7 @@ function renderCompanyDropdown() {
     const companies = getSavedCompanies().filter(company => !hiddenCompanies.has(company));
   const currentValue = jobSelect.value;
 
-  jobSelect.innerHTML = '<option value="">Choose saved company</option>' +
+  jobSelect.innerHTML = '<option value="">Choose saved source</option>' +
     companies.map(company => `<option value="${escapeHtml(company)}">${escapeHtml(company)}</option>`).join('');
 
   if (companies.includes(currentValue)) {
@@ -1058,7 +1076,7 @@ function renderCompaniesList() {
   const companies = getCompaniesWithCounts();
 
   if (!companies.length) {
-    companiesList.innerHTML = '<div class="empty">No saved companies yet.</div>';
+    companiesList.innerHTML = '<div class="empty">No saved sources yet.</div>';
     return;
   }
 
@@ -1087,8 +1105,8 @@ function renderCompaniesList() {
 <button
   class="btn company-toggle-btn ${isOff ? 'is-off' : ''}"
   type="button"
-  title="${isOff ? 'Show company' : 'Hide company'}"
-  aria-label="${isOff ? 'Show company' : 'Hide company'}"
+  title="${isOff ? 'Show source' : 'Hide source'}"
+  aria-label="${isOff ? 'Show source' : 'Hide source'}"
   onclick="toggleCompanyVisibility('${encodeCompanyNameForClick(company.name)}')"
 >
   <img
@@ -1543,7 +1561,7 @@ window.saveEarnItKeyToCloud?.(
   .filter(entry => entry.job && entry.date && Number.isFinite(entry.salary))
   .reverse();
   if (!sorted.length) {
-    entriesList.innerHTML = '<div class="empty">No salary entries yet.</div>';
+    entriesList.innerHTML = '<div class="empty">No income entries yet.</div>';
     return;
   }
 
@@ -1557,6 +1575,7 @@ window.saveEarnItKeyToCloud?.(
           <div>
             <strong>${escapeHtml(entry.job)}</strong>
             <div class="entry-meta">
+              <span>${escapeHtml(getIncomeTypeLabel(entry.incomeType))}</span>
               <span>${escapeHtml(formatMonthYear(entry.date))}</span>
               <span>${escapeHtml(formatPeso(entry.salary))}</span>
             </div>
@@ -2180,7 +2199,7 @@ async function saveCompanyEdits() {
       );
 
       await window.WorthItModal.notice(
-        "The linked income records could not be updated, so the company was not renamed."
+        "The linked income records could not be updated, so the source was not renamed."
       );
 
       return;
@@ -2234,6 +2253,7 @@ async function saveCompanyEdits() {
   editingIdInput.value = clean.id;
   jobInput.value = clean.job;
   jobSelect.value = clean.job;
+  incomeTypeSelect.value = clean.incomeType;
   document.getElementById('dateInput').value = clean.date;
   document.getElementById('salaryInput').value = clean.salary;
   document.getElementById(
@@ -2612,11 +2632,13 @@ const entryId =
   }
 
   const selectedColor = String(formData.get('color') || '#7c99ff');
+  const incomeType = normalizeIncomeType(formData.get('incomeType'));
   const existingCompanyMeta = finalJob ? getCompanySettings(finalJob, selectedColor) : { color: selectedColor, notes: '' };
 
   const newEntry = sanitizeEntry({
     id: entryId,
     job: finalJob,
+    incomeType,
     date: formData.get('date'),
     salary: Number(formData.get('salary')),
     color: existingCompanyMeta.color || selectedColor,

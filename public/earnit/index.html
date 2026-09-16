@@ -19,9 +19,9 @@
 <div class="app with-header">
   <section class="hero home-only">
     <div>
-      <h1>Visualize how your pay grows over time.</h1>
+      <h1>Visualize how your income grows over time.</h1>
       <p class="subtitle">
-        Add each salary entry, compare jobs or companies, and spot months or years with no work at a glance.
+        Add each income entry, compare sources, and spot months or years with no income at a glance.
       </p>
     </div>
 <div class="dashboard-summary" aria-label="Income dashboard summary">
@@ -31,7 +31,7 @@
   </div>
 
   <div class="dashboard-mini-card">
-    <div class="dashboard-mini-label">Companies</div>
+    <div class="dashboard-mini-label">Sources</div>
     <div class="dashboard-mini-value" id="heroCompanyCount">0</div>
   </div>
 
@@ -61,20 +61,29 @@
 
   <section class="grid">
   <aside class="card home-card entry-form-card" id="entryFormCard">
-    <h2>ADD SALARY ENTRY</h2>
+    <h2>ADD INCOME ENTRY</h2>
     <form id="entryForm" class="form">
       <input type="hidden" id="editingId" value="" />
 
       <div class="field">
-        <label for="jobSelect">Job / Company</label>
-        <select id="jobSelect" name="jobSelect">
-          <option value="">Choose saved company</option>
+        <label for="incomeTypeSelect">Income Type</label>
+        <select id="incomeTypeSelect" name="incomeType" required>
+          <option value="salary">Salary / Wage</option>
+          <option value="sales">Sales</option>
+          <option value="project">Project / Gig / Task</option>
         </select>
       </div>
 
       <div class="field">
-        <label for="jobInput">Or type a new Job / Company</label>
-        <input id="jobInput" name="job" type="text" placeholder="Ex. Acme Corp - Frontend Developer" />
+        <label for="jobSelect">Source</label>
+        <select id="jobSelect" name="jobSelect">
+          <option value="">Choose saved source</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="jobInput">Or add a new source</label>
+        <input id="jobInput" name="job" type="text" placeholder="e.g. Glass Bay, Facebook Marketplace, Client Name" />
       </div>
 
       <div class="row">
@@ -139,7 +148,7 @@
     </form>
 
     <div class="footnote">
-      Add, edit, and organize your salary entries here. Open the Graph tab above to view the chart and zoom controls.
+      Add, edit, and organize your income entries here. Open the Graph tab above to view the chart and zoom controls.
     </div>
   </aside>
 
@@ -149,7 +158,7 @@
   </section>
 
   <section class="card home-card">
-    <h2>SAVED COMPANIES</h2>
+    <h2>SAVED SOURCES</h2>
     <div id="companiesList" class="company-list"></div>
   </section>
 </section>
@@ -305,7 +314,7 @@
 <div id="companyModalBackdrop" class="modal-backdrop" aria-hidden="true">
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="companyModalTitle">
     <div class="modal-header">
-      <h3 id="companyModalTitle">Edit company</h3>
+      <h3 id="companyModalTitle">Edit source</h3>
       <button class="btn" type="button" id="closeCompanyModalBtn">Close</button>
     </div>
 
@@ -313,18 +322,18 @@
 
     <div class="form">
       <div class="field">
-        <label for="companyEditName">Company name</label>
-        <input id="companyEditName" type="text" placeholder="Company name" />
+        <label for="companyEditName">Source name</label>
+        <input id="companyEditName" type="text" placeholder="Source name" />
       </div>
 
       <div class="field">
-        <label for="companyEditColor">Company color</label>
+        <label for="companyEditColor">Source color</label>
         <input id="companyEditColor" type="color" value="#7c99ff" />
       </div>
 
       <div class="field">
-        <label for="companyEditNotes">Company notes</label>
-        <textarea id="companyEditNotes" placeholder="Anything you want to remember about this company"></textarea>
+        <label for="companyEditNotes">Source notes</label>
+        <textarea id="companyEditNotes" placeholder="Anything you want to remember about this source"></textarea>
       </div>
     </div>
 
