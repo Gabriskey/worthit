@@ -62,14 +62,14 @@ const APP_CONFIG = {
       path: "index.html"
     },
     {
-      key: "earnit",
-      label: "Income",
-      path: "earnit/index.html"
-    },
-    {
       key: "spendit",
       label: "Spending",
       path: "spendit/index.html"
+    },
+    {
+      key: "earnit",
+      label: "Income",
+      path: "earnit/index.html"
     },
     {
       key: "wishlist",
