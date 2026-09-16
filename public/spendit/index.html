@@ -86,7 +86,7 @@
 
           <section class="card dashboard-chart-card">
             <div class="toolbar">
-              <h2>✨ Expense Activity</h2>
+              <h2>Expense Activity</h2>
               <span class="dashboard-note" id="heatmapRangeTotal">Total range spend: ₱0</span>
             </div>
             <div id="expenseHeatmap" class="expense-heatmap"></div>
@@ -103,7 +103,7 @@
 
           <section class="card dashboard-chart-card">
             <div class="toolbar">
-              <h2>〽 Cash Flow</h2>
+              <h2>Cash Flow</h2>
               <div class="chart-switch-row">
                 <button class="chart-mode-btn" type="button" data-cashflow-mode="daily">Daily</button>
                 <button class="chart-mode-btn" type="button" data-cashflow-mode="weekly">Weekly</button>
@@ -122,7 +122,7 @@
 
           <section class="card dashboard-chart-card">
             <div class="toolbar">
-              <h2>📅 Spend</h2>
+              <h2>Spend</h2>
               <div class="chart-switch-row">
                 <button class="chart-mode-btn" type="button" data-spend-mode="daily">Daily</button>
                 <button class="chart-mode-btn active" type="button" data-spend-mode="weekly">Weekly</button>
@@ -140,7 +140,7 @@
 
           <section class="card dashboard-chart-card">
             <div class="toolbar">
-              <h2>〽 Spending Mix</h2>
+              <h2>Spending Mix</h2>
               <span class="dashboard-note" id="spendingMixTotal">Total spend: ₱0</span>
             </div>
 
@@ -156,16 +156,44 @@
             </div>
 
             <section class="charts-grid">
-              <section class="card chart-card">
-                <div class="toolbar">
-                  <h2>🥧 Expenses by Category</h2>
+              <section class="card chart-card category-pie-card">
+                <div class="toolbar category-chart-toolbar">
+                  <div>
+                    <h2>Expenses by Category</h2>
+                    <div class="category-chart-range-label" id="categoryPieRangeLabel">All Time</div>
+                  </div>
+
+                  <select id="categoryPieRangeSelect" class="category-chart-range-select" aria-label="Expenses by Category date range">
+                    <option value="today">Today</option>
+                    <option value="yesterday">Yesterday</option>
+                    <option value="last7">Last 7 days</option>
+                    <option value="last30">Last 30 days</option>
+                    <option value="last90">Last 90 days</option>
+                    <option value="all">All Time</option>
+                    <option value="custom">Custom Range</option>
+                  </select>
                 </div>
+
+                <div id="categoryPieCustomRange" class="category-pie-custom-range" hidden>
+                  <label>
+                    <span>Start date</span>
+                    <input id="categoryPieStartDate" type="date">
+                  </label>
+                  <span class="category-pie-range-separator">to</span>
+                  <label>
+                    <span>End date</span>
+                    <input id="categoryPieEndDate" type="date">
+                  </label>
+                  <p id="categoryPieRangeError" class="category-pie-range-error" hidden></p>
+                </div>
+
                 <canvas id="categoryPieChart"></canvas>
+                <div id="categoryPieLegend" class="category-pie-legend" aria-live="polite"></div>
               </section>
 
               <section class="card chart-card">
                 <div class="toolbar">
-                  <h2>📈 Spending This Week</h2>
+                  <h2>Spending This Week</h2>
                 </div>
                 <canvas id="weeklyTrendChart"></canvas>
               </section>

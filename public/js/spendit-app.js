@@ -116,6 +116,7 @@ const BANK_PRESET_ACCOUNT_TYPES = new Set([
 let accounts = loadAccounts();
 let records = loadRecords();
 let ui = loadUi();
+const CATEGORY_PIE_RANGES = new Set(['today', 'yesterday', 'last7', 'last30', 'last90', 'all', 'custom']);
 let selectedAccountId = ui.selectedAccountId || accounts[0]?.id || '';
 let recordType = 'income';
 let amountBuffer = '';
@@ -131,6 +132,11 @@ let dashboardCashFlowMode = 'monthly';
 let dashboardSpendMode = 'weekly';
 let dashboardEnabledCategories = new Set(categories.map(c => c.name));
 let dashboardCollapsedCategories = new Set();
+let categoryPieRange = CATEGORY_PIE_RANGES.has(ui.categoryPieRange) ? ui.categoryPieRange : 'all';
+let categoryPieStartDate = String(ui.categoryPieStartDate || '');
+let categoryPieEndDate = String(ui.categoryPieEndDate || '');
+let hoveredCategoryPieSliceIndex = -1;
+let cashFlowResizeFrame = 0;
 
 let enabledAccountIds = new Set(ui.enabledAccountIds || accounts.map(a => a.id));
 
@@ -239,6 +245,9 @@ function saveUi(){
     JSON.stringify({
       selectedAccountId,
       currentPageId,
+      categoryPieRange,
+      categoryPieStartDate,
+      categoryPieEndDate,
       enabledAccountIds:
         [...enabledAccountIds]
     });
@@ -274,6 +283,17 @@ window.reloadSpendItFromStorage =
       ui.currentPageId ||
       "dashboardPage";
 
+    categoryPieRange =
+      CATEGORY_PIE_RANGES.has(ui.categoryPieRange)
+        ? ui.categoryPieRange
+        : 'all';
+
+    categoryPieStartDate =
+      String(ui.categoryPieStartDate || '');
+
+    categoryPieEndDate =
+      String(ui.categoryPieEndDate || '');
+
     enabledAccountIds =
       new Set(
         ui.enabledAccountIds ||
@@ -305,10 +325,41 @@ document.querySelectorAll('[data-range]').forEach(btn => {
   btn.addEventListener('click', () => setDashboardRange(btn.dataset.range));
 });
 
+const categoryPieRangeSelect = document.getElementById('categoryPieRangeSelect');
+const categoryPieStartDateInput = document.getElementById('categoryPieStartDate');
+const categoryPieEndDateInput = document.getElementById('categoryPieEndDate');
+
+categoryPieRangeSelect?.addEventListener('change', () => {
+  categoryPieRange = categoryPieRangeSelect.value;
+  updateCategoryPieChartRange();
+});
+
+categoryPieStartDateInput?.addEventListener('change', () => {
+  categoryPieStartDate = categoryPieStartDateInput.value;
+  updateCategoryPieChartRange();
+});
+
+categoryPieEndDateInput?.addEventListener('change', () => {
+  categoryPieEndDate = categoryPieEndDateInput.value;
+  updateCategoryPieChartRange();
+});
+
 document.querySelectorAll('[data-cashflow-mode]').forEach(btn => {
   btn.addEventListener('click', () => {
     dashboardCashFlowMode = btn.dataset.cashflowMode;
     renderDashboard();
+  });
+});
+
+window.addEventListener('resize', () => {
+  if (cashFlowResizeFrame) return;
+
+  cashFlowResizeFrame = requestAnimationFrame(() => {
+    cashFlowResizeFrame = 0;
+    const canvas = document.getElementById('dashboardCashFlowChart');
+    const rect = canvas?.getBoundingClientRect();
+
+    if (rect?.width && rect.height) renderDashboardCashFlowChart();
   });
 });
 
@@ -734,75 +785,295 @@ function setupCanvas(canvas){
   return { ctx, width: rect.width, height: rect.height };
 }
 
+function setupCashFlowCanvas(canvas){
+  const rect = canvas.getBoundingClientRect();
+  if (!rect.width || !rect.height) return null;
+
+  const dpr = window.devicePixelRatio || 1;
+  const backingWidth = Math.round(rect.width * dpr);
+  const backingHeight = Math.round(rect.height * dpr);
+
+  if (canvas.width !== backingWidth || canvas.height !== backingHeight) {
+    canvas.width = backingWidth;
+    canvas.height = backingHeight;
+  }
+
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(backingWidth / rect.width, 0, 0, backingHeight / rect.height, 0, 0);
+
+  return { ctx, width: rect.width, height: rect.height };
+}
+
+function clearCashFlowCanvas(ctx, width, height){
+  ctx.clearRect(0, 0, width, height);
+}
+
+function formatCategoryPieDate(date){
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric'
+  });
+}
+
+function formatCategoryPieDateRange(start, end){
+  if (dateKey(start) === dateKey(end)) {
+    return formatCategoryPieDate(start);
+  }
+
+  return `${formatCategoryPieDate(start)} - ${formatCategoryPieDate(end)}`;
+}
+
+function getCategoryPieRangeState(){
+  const today = parseDateKey(nowDate());
+
+  if (categoryPieRange === 'all') {
+    return { valid: true, label: 'All Time', start: null, end: null };
+  }
+
+  if (categoryPieRange === 'today') {
+    return { valid: true, label: 'Today', start: today, end: today };
+  }
+
+  if (categoryPieRange === 'yesterday') {
+    const yesterday = addDays(today, -1);
+    return { valid: true, label: 'Yesterday', start: yesterday, end: yesterday };
+  }
+
+  if (categoryPieRange === 'last7' || categoryPieRange === 'last30' || categoryPieRange === 'last90') {
+    const days = categoryPieRange === 'last7'
+      ? 7
+      : categoryPieRange === 'last30'
+        ? 30
+        : 90;
+    const start = addDays(today, -(days - 1));
+
+    return {
+      valid: true,
+      label: formatCategoryPieDateRange(start, today),
+      start,
+      end: today
+    };
+  }
+
+  const start = parseDateKey(categoryPieStartDate);
+  const end = parseDateKey(categoryPieEndDate);
+
+  if (!start || !end) {
+    return {
+      valid: false,
+      label: 'Custom Range',
+      message: 'Choose both a start date and an end date.'
+    };
+  }
+
+  if (start > end) {
+    return {
+      valid: false,
+      label: 'Custom Range',
+      message: 'Start date must be on or before end date.'
+    };
+  }
+
+  return {
+    valid: true,
+    label: formatCategoryPieDateRange(start, end),
+    start,
+    end
+  };
+}
+
+function setCategoryPieRangeError(message = ''){
+  const error = document.getElementById('categoryPieRangeError');
+  if (!error) return;
+
+  error.textContent = message;
+  error.hidden = !message;
+}
+
+function syncCategoryPieRangeControls(){
+  const customRange = document.getElementById('categoryPieCustomRange');
+
+  if (categoryPieRangeSelect) {
+    categoryPieRangeSelect.value = categoryPieRange;
+  }
+
+  if (categoryPieStartDateInput) {
+    categoryPieStartDateInput.value = categoryPieStartDate;
+  }
+
+  if (categoryPieEndDateInput) {
+    categoryPieEndDateInput.value = categoryPieEndDate;
+  }
+
+  if (customRange) {
+    customRange.hidden = categoryPieRange !== 'custom';
+  }
+}
+
+function updateCategoryPieChartRange(){
+  const range = getCategoryPieRangeState();
+  setCategoryPieRangeError(range.valid ? '' : range.message);
+  hoveredCategoryPieSliceIndex = -1;
+  saveUi();
+  renderCategoryPieChart();
+}
+
+function getCategoryPieSliceIndex(x, y, cx, cy, radius, slices){
+  const dx = x - cx;
+  const dy = y - cy;
+  const distance = Math.sqrt(dx * dx + dy * dy);
+
+  if (distance > radius) return -1;
+
+  let angle = Math.atan2(dy, dx);
+  if (angle < -Math.PI / 2) angle += Math.PI * 2;
+
+  return slices.findIndex(slice =>
+    angle >= slice.start && angle <= slice.end
+  );
+}
+
+function attachCategoryPieHover(canvas, slices, cx, cy, radius){
+  const tooltip = getCanvasTooltip();
+
+  canvas.onmousemove = function(event){
+    const rect = canvas.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+    const nextIndex = getCategoryPieSliceIndex(x, y, cx, cy, radius, slices);
+
+    canvas.style.cursor = nextIndex >= 0 ? 'pointer' : 'default';
+
+    if (nextIndex >= 0) {
+      tooltip.textContent = slices[nextIndex].title;
+      tooltip.style.left = event.clientX + 'px';
+      tooltip.style.top = event.clientY + 'px';
+      tooltip.style.opacity = '1';
+    } else {
+      tooltip.style.opacity = '0';
+    }
+
+    if (nextIndex !== hoveredCategoryPieSliceIndex) {
+      hoveredCategoryPieSliceIndex = nextIndex;
+      renderCategoryPieChart();
+    }
+  };
+
+  canvas.onmouseleave = function(){
+    tooltip.style.opacity = '0';
+    canvas.style.cursor = 'default';
+
+    if (hoveredCategoryPieSliceIndex !== -1) {
+      hoveredCategoryPieSliceIndex = -1;
+      renderCategoryPieChart();
+    }
+  };
+}
+
 function renderCategoryPieChart(){
   const canvas = document.getElementById('categoryPieChart');
-  if (!canvas) return;
+  const legend = document.getElementById('categoryPieLegend');
+  const rangeLabel = document.getElementById('categoryPieRangeLabel');
+  if (!canvas || !legend || !rangeLabel) return;
+
+  const range = getCategoryPieRangeState();
+  syncCategoryPieRangeControls();
+  rangeLabel.textContent = range.label;
+  setCategoryPieRangeError(range.valid ? '' : range.message);
 
   const { ctx, width, height } = setupCanvas(canvas);
   clearCanvas(canvas);
 
+  if (!range.valid) {
+    drawEmptyChart(ctx, range.message);
+    legend.innerHTML = '';
+    hoveredCategoryPieSliceIndex = -1;
+    canvas.style.cursor = 'default';
+    attachCanvasHover(canvas, []);
+    return;
+  }
+
   const expenseTotals = {};
   records
-    .filter(r => r.type === 'expense' && recordUsesEnabledAccount(r))
+    .filter(r =>
+      r.type === 'expense' &&
+      recordUsesEnabledAccount(r) &&
+      (!range.start || isWithinRange(r, range))
+    )
     .forEach(r => {
       expenseTotals[r.category] = (expenseTotals[r.category] || 0) + Number(r.amount || 0);
     });
 
-  const data = Object.entries(expenseTotals).filter(([name, total]) => total > 0);
-  const total = data.reduce((sum, item) => sum + item[1], 0);
+  const data = Object.entries(expenseTotals)
+    .filter(([, total]) => total > 0)
+    .map(([name, total]) => ({
+      name,
+      total,
+      cat: categories.find(c => c.name === name) || categories[categories.length - 1]
+    }));
+  const total = data.reduce((sum, item) => sum + item.total, 0);
 
   if (!total) {
-    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--text-secondary');
-    ctx.font = '14px Segoe UI';
-    ctx.fillText('No expense data yet.', 20, 40);
+    const emptyMessage = range.start ? 'No expenses in this range.' : 'No expense data yet.';
+    drawEmptyChart(ctx, emptyMessage);
+    legend.innerHTML = `<div class="empty">${emptyMessage}</div>`;
+    hoveredCategoryPieSliceIndex = -1;
+    canvas.style.cursor = 'default';
+    attachCanvasHover(canvas, []);
     return;
   }
 
   let start = -Math.PI / 2;
   const cx = width / 2;
-  const cy = height / 2 - 10;
+  const cy = height / 2;
   const radius = Math.min(width, height) * 0.40;
-  const hoverPoints = [];
+  const slices = [];
 
-  data.forEach(([categoryName, amount]) => {
-    const cat = categories.find(c => c.name === categoryName) || categories[categories.length - 1];
-    const slice = (amount / total) * Math.PI * 2;
+  data.forEach((item, index) => {
+    const categoryName = item.name;
+    const amount = item.total;
+    const slice = (item.total / total) * Math.PI * 2;
+    const end = start + slice;
+    const midpoint = start + slice / 2;
+    const isHovered = index === hoveredCategoryPieSliceIndex;
+    const offset = isHovered ? 8 : 0;
+    const sliceCx = cx + Math.cos(midpoint) * offset;
+    const sliceCy = cy + Math.sin(midpoint) * offset;
 
     ctx.beginPath();
-    ctx.moveTo(cx, cy);
-    ctx.arc(cx, cy, radius, start, start + slice);
+    ctx.moveTo(sliceCx, sliceCy);
+    ctx.arc(sliceCx, sliceCy, radius, start, end);
     ctx.closePath();
-    ctx.fillStyle = cat.color;
-ctx.fill();
+    ctx.fillStyle = item.cat.color;
+    ctx.fill();
 
-    hoverPoints.push({
+    if (isHovered) {
+      ctx.strokeStyle = 'rgba(255,255,255,.72)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+
+    slices.push({
       kind: 'arc',
       cx,
       cy,
       radius,
-      inner: 0,
       start,
-      end: start + slice,
+      end,
       title: `${categoryName} · ${money(amount)} · ${Math.round((amount / total) * 100)}%`
     });
 
-    start += slice;
+    start = end;
   });
 
-  let legendY = height - 55;
-  data.slice(0, 4).forEach(([categoryName, amount], index) => {
-    const cat = categories.find(c => c.name === categoryName) || categories[categories.length - 1];
-    const x = 20 + (index % 2) * (width / 2);
-    const y = legendY + Math.floor(index / 2) * 24;
+  legend.innerHTML = data.map(item => `
+    <div class="category-pie-legend-item" title="${escapeHtml(item.name)} - ${money(item.total)}">
+      <span class="category-pie-legend-name"><span class="category-pie-legend-dot" style="background:${item.cat.color}"></span>${escapeHtml(item.name)}</span>
+      <strong>${money(item.total)}</strong>
+    </div>
+  `).join('');
 
-    ctx.fillStyle = cat.color;
-    ctx.fillRect(x, y, 10, 10);
-    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--text-secondary');
-    ctx.font = '12px Segoe UI';
-    ctx.fillText(`${categoryName}: ${money(amount)}`, x + 16, y + 10);
-  });
-
-  attachCanvasHover(canvas, hoverPoints);
+  attachCategoryPieHover(canvas, slices, cx, cy, radius);
 }
 
 function renderWeeklyTrendChart(){
@@ -1135,11 +1406,20 @@ function renderDashboardHeatmap(){
     const key = dateKey(d);
     const amount = totals[key] || 0;
     const level = amount <= 0 ? 0 : Math.min(4, Math.ceil((amount / max) * 4));
+    const displayDate = parseDateKey(key).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+    const displayAmount = money(amount);
 
     months[monthKey].cells.push(`
       <span 
-        class="heatmap-cell level-${level}" 
-        title="${formatDisplayDate(key)} · ${money(amount)}">
+        class="heatmap-cell expense-activity-tile level-${level}"
+        tabindex="0"
+        data-date="${escapeHtml(displayDate)}"
+        data-amount="${escapeHtml(displayAmount)}"
+        aria-label="${escapeHtml(`${displayDate}, ${displayAmount}`)}">
       </span>
     `);
 
@@ -1156,6 +1436,60 @@ function renderDashboardHeatmap(){
       `).join('')}
     </div>
   `;
+
+  attachExpenseActivityTileDetails(wrap);
+}
+
+function getExpenseActivityTooltip(){
+  let tooltip = document.getElementById('expenseActivityTooltip');
+
+  if (!tooltip) {
+    tooltip = document.createElement('div');
+    tooltip.id = 'expenseActivityTooltip';
+    tooltip.className = 'expense-activity-tooltip';
+    tooltip.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(tooltip);
+  }
+
+  return tooltip;
+}
+
+function showExpenseActivityTooltip(tile, left, top){
+  const tooltip = getExpenseActivityTooltip();
+  tooltip.innerHTML = `<strong>${escapeHtml(tile.dataset.date)}</strong><span>${escapeHtml(tile.dataset.amount)}</span>`;
+  tooltip.style.left = `${left}px`;
+  tooltip.style.top = `${top}px`;
+  tooltip.style.opacity = '1';
+  tooltip.setAttribute('aria-hidden', 'false');
+}
+
+function hideExpenseActivityTooltip(){
+  const tooltip = document.getElementById('expenseActivityTooltip');
+  if (!tooltip) return;
+
+  tooltip.style.opacity = '0';
+  tooltip.setAttribute('aria-hidden', 'true');
+}
+
+function attachExpenseActivityTileDetails(wrap){
+  wrap.querySelectorAll('.heatmap-cell').forEach(tile => {
+    tile.addEventListener('mouseenter', event => {
+      showExpenseActivityTooltip(tile, event.clientX, event.clientY);
+    });
+
+    tile.addEventListener('mousemove', event => {
+      showExpenseActivityTooltip(tile, event.clientX, event.clientY);
+    });
+
+    tile.addEventListener('mouseleave', hideExpenseActivityTooltip);
+
+    tile.addEventListener('focus', () => {
+      const rect = tile.getBoundingClientRect();
+      showExpenseActivityTooltip(tile, rect.left + rect.width / 2, rect.top);
+    });
+
+    tile.addEventListener('blur', hideExpenseActivityTooltip);
+  });
 }
 
 function groupRecordsByMode(list, mode){
@@ -1196,6 +1530,8 @@ function renderDashboardCashFlowChart(){
   const canvas = document.getElementById('dashboardCashFlowChart');
   if (!canvas) return;
 
+  hideCashFlowTooltip();
+
   const list = groupRecordsByMode(getDashboardRecords(), dashboardCashFlowMode);
   const income = list.reduce((s,d) => s + d.income, 0);
   const expense = list.reduce((s,d) => s + d.expense, 0);
@@ -1204,17 +1540,20 @@ function renderDashboardCashFlowChart(){
   setText('cashMoneyOut', money(expense));
   setText('cashWhatsLeft', money(income - expense));
 
-  const { ctx, width, height } = setupCanvas(canvas);
-  clearCanvas(canvas);
+  const setup = setupCashFlowCanvas(canvas);
+  if (!setup) return;
+  const { ctx, width, height } = setup;
+  clearCashFlowCanvas(ctx, width, height);
 
   if (!list.length) {
     drawEmptyChart(ctx, 'No cash flow data yet.');
     return;
   }
 
-  drawLineChart(ctx, width, height, list, [
-    { key:'income', color:'#14f195' },
-    { key:'expense', color:'#7c3cff' }
+  const styles = getComputedStyle(document.documentElement);
+  drawCashFlowChart(ctx, width, height, list, [
+    { key:'income', label:'Income', color:styles.getPropertyValue('--blue').trim() || '#9fcdf5' },
+    { key:'expense', label:'Expense', color:styles.getPropertyValue('--danger').trim() || '#ff7b7b' }
   ]);
 }
 
@@ -1382,6 +1721,285 @@ function attachCanvasHover(canvas, points){
   canvas.onmouseleave = function(){
     tooltip.style.opacity = '0';
   };
+}
+
+function getCashFlowTooltip(){
+  let tooltip = document.getElementById('cashFlowTooltip');
+
+  if (!tooltip) {
+    tooltip = document.createElement('div');
+    tooltip.id = 'cashFlowTooltip';
+    tooltip.className = 'cash-flow-tooltip';
+    tooltip.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(tooltip);
+  }
+
+  return tooltip;
+}
+
+function hideCashFlowTooltip(){
+  const tooltip = document.getElementById('cashFlowTooltip');
+  if (!tooltip) return;
+
+  tooltip.style.opacity = '0';
+  tooltip.setAttribute('aria-hidden', 'true');
+}
+
+function formatCashFlowBucket(key, fallback){
+  const monthlyMatch = String(key || '').match(/^(\d{4})-(\d{2})$/);
+  if (monthlyMatch) {
+    return new Date(Number(monthlyMatch[1]), Number(monthlyMatch[2]) - 1, 1)
+      .toLocaleDateString('en-PH', { month:'long', year:'numeric' });
+  }
+
+  const date = parseDateKey(key);
+  if (date) {
+    return date.toLocaleDateString('en-PH', { month:'long', day:'numeric', year:'numeric' });
+  }
+
+  return fallback;
+}
+
+function colorWithAlpha(color, alpha){
+  const hex = String(color || '').trim().replace('#', '');
+  const normalized = hex.length === 3
+    ? hex.split('').map(value => value + value).join('')
+    : hex;
+
+  if (/^[0-9a-f]{6}$/i.test(normalized)) {
+    const value = Number.parseInt(normalized, 16);
+    const red = (value >> 16) & 255;
+    const green = (value >> 8) & 255;
+    const blue = value & 255;
+    return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
+  }
+
+  return color;
+}
+
+function traceSmoothLine(ctx, points){
+  ctx.beginPath();
+  ctx.moveTo(points[0].x, points[0].y);
+
+  for (let index = 1; index < points.length; index++) {
+    const previous = points[index - 1];
+    const current = points[index];
+    const controlOffset = (current.x - previous.x) * .32;
+
+    ctx.bezierCurveTo(
+      previous.x + controlOffset,
+      previous.y,
+      current.x - controlOffset,
+      current.y,
+      current.x,
+      current.y
+    );
+  }
+}
+
+function formatCashFlowAxisAmount(value){
+  const amount = Number(value) || 0;
+
+  if (amount >= 1000000) {
+    const millions = amount / 1000000;
+    return `₱${Number.isInteger(millions) ? millions : millions.toFixed(1)}M`;
+  }
+
+  if (amount >= 1000) {
+    const thousands = amount / 1000;
+    return `₱${Number.isInteger(thousands) ? thousands : thousands.toFixed(1)}K`;
+  }
+
+  return `₱${Math.round(amount)}`;
+}
+
+function drawCashFlowYAxisLabels(ctx, left, top, bottom, max){
+  const roundedMax = roundUpTo5k(max);
+  const steps = 4;
+
+  ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--text-secondary');
+  ctx.font = '600 11px "Segoe UI", Inter, sans-serif';
+  ctx.textAlign = 'right';
+  ctx.textBaseline = 'middle';
+
+  for (let index = 0; index <= steps; index++) {
+    const value = roundedMax - (roundedMax / steps) * index;
+    const y = top + ((bottom - top) / steps) * index;
+    ctx.fillText(formatCashFlowAxisAmount(value), left - 10, y);
+  }
+
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+}
+
+function drawCashFlowGrid(ctx, left, right, top, bottom){
+  ctx.strokeStyle = 'rgba(244,240,232,.10)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4, 4]);
+
+  for (let index = 0; index <= 4; index++) {
+    const y = top + ((bottom - top) / 4) * index;
+    ctx.beginPath();
+    ctx.moveTo(left, y);
+    ctx.lineTo(right, y);
+    ctx.stroke();
+  }
+
+  ctx.setLineDash([]);
+}
+
+function showCashFlowTooltip(canvas, event, data, lines, activeIndex, activeX){
+  const tooltip = getCashFlowTooltip();
+  const activeBucket = data[activeIndex];
+  const card = canvas.closest('.dashboard-chart-card') || canvas;
+  const cardRect = card.getBoundingClientRect();
+
+  tooltip.innerHTML = `
+    <strong>${escapeHtml(formatCashFlowBucket(activeBucket.key, activeBucket.label))}</strong>
+    ${lines.map(line => `
+      <div class="cash-flow-tooltip-row">
+        <span class="cash-flow-tooltip-dot" style="background:${line.color}"></span>
+        <span>${escapeHtml(line.label)}</span>
+        <b>${money(activeBucket[line.key])}</b>
+      </div>
+    `).join('')}
+  `;
+  tooltip.style.opacity = '1';
+  tooltip.setAttribute('aria-hidden', 'false');
+
+  const canvasRect = canvas.getBoundingClientRect();
+  const padding = 10;
+  const tooltipWidth = tooltip.offsetWidth;
+  const tooltipHeight = tooltip.offsetHeight;
+  const anchorX = canvasRect.left + activeX;
+  let left = anchorX + 14;
+  let top = event.clientY + 14;
+
+  if (left + tooltipWidth > cardRect.right - padding) left = anchorX - tooltipWidth - 14;
+  left = Math.max(cardRect.left + padding, Math.min(left, cardRect.right - tooltipWidth - padding));
+  top = Math.max(cardRect.top + padding, Math.min(top, cardRect.bottom - tooltipHeight - padding));
+
+  tooltip.style.left = `${left}px`;
+  tooltip.style.top = `${top}px`;
+}
+
+function attachCashFlowHover(canvas, ctx, width, height, data, lines, layout, activeIndex){
+  canvas.onmousemove = function(event){
+    const rect = canvas.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+
+    if (x < layout.left || x > layout.right) {
+      canvas.style.cursor = 'default';
+      hideCashFlowTooltip();
+      if (activeIndex !== -1) drawCashFlowChart(ctx, width, height, data, lines, -1);
+      return;
+    }
+
+    canvas.style.cursor = 'crosshair';
+    const ratio = (x - layout.left) / Math.max(1, layout.right - layout.left);
+    const nextIndex = Math.max(0, Math.min(data.length - 1, Math.round(ratio * (data.length - 1))));
+
+    if (nextIndex !== activeIndex) drawCashFlowChart(ctx, width, height, data, lines, nextIndex);
+    showCashFlowTooltip(canvas, event, data, lines, nextIndex, layout.xPositions[nextIndex]);
+  };
+
+  canvas.onmouseleave = function(){
+    canvas.style.cursor = 'default';
+    hideCashFlowTooltip();
+    if (activeIndex !== -1) drawCashFlowChart(ctx, width, height, data, lines, -1);
+  };
+}
+
+function drawCashFlowChart(ctx, width, height, data, lines, activeIndex = -1){
+  const canvas = ctx.canvas;
+  const left = 66;
+  const right = width - 38;
+  const top = 32;
+  const bottom = height - 54;
+  const max = roundUpTo5k(Math.max(...data.flatMap(d => lines.map(line => d[line.key])), 1));
+  const xPositions = data.map((_, index) => left + ((right - left) / Math.max(1, data.length - 1)) * index);
+  const series = lines.map(line => ({
+    ...line,
+    points: data.map((bucket, index) => ({
+      x: xPositions[index],
+      y: bottom - (bucket[line.key] / max) * (bottom - top)
+    }))
+  }));
+
+  clearCashFlowCanvas(ctx, width, height);
+  drawCashFlowGrid(ctx, left, right, top, bottom);
+  drawCashFlowYAxisLabels(ctx, left, top, bottom, max);
+
+  series.forEach(line => {
+    const gradient = ctx.createLinearGradient(0, top, 0, bottom);
+    gradient.addColorStop(0, colorWithAlpha(line.color, .50));
+    gradient.addColorStop(1, colorWithAlpha(line.color, 0));
+
+    traceSmoothLine(ctx, line.points);
+    ctx.lineTo(line.points[line.points.length - 1].x, bottom);
+    ctx.lineTo(line.points[0].x, bottom);
+    ctx.closePath();
+    ctx.fillStyle = gradient;
+    ctx.fill();
+
+    traceSmoothLine(ctx, line.points);
+    ctx.strokeStyle = line.color;
+    ctx.lineWidth = 3.5;
+    ctx.stroke();
+
+    if (line.points.length === 1) {
+      ctx.beginPath();
+      ctx.arc(line.points[0].x, line.points[0].y, 3.5, 0, Math.PI * 2);
+      ctx.fillStyle = line.color;
+      ctx.fill();
+    }
+  });
+
+  if (activeIndex >= 0) {
+    const activeX = xPositions[activeIndex];
+    ctx.strokeStyle = 'rgba(244,240,232,.38)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.moveTo(activeX, top);
+    ctx.lineTo(activeX, bottom);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    series.forEach(line => {
+      const point = line.points[activeIndex];
+      ctx.beginPath();
+      ctx.arc(point.x, point.y, 5.5, 0, Math.PI * 2);
+      ctx.fillStyle = line.color;
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(244,240,232,.86)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    });
+  }
+
+  ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--text-secondary');
+  ctx.font = '600 11px "Segoe UI", Inter, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+
+  const maxLabels = Math.max(2, Math.floor((right - left) / 56));
+  const labelStep = Math.max(1, Math.ceil((data.length - 1) / Math.max(1, maxLabels - 1)));
+
+  data.forEach((bucket, index) => {
+    const isEnd = index === 0 || index === data.length - 1;
+    if (!isEnd && index % labelStep !== 0) return;
+    ctx.fillText(bucket.label, xPositions[index], bottom + 14);
+  });
+
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+
+  attachCashFlowHover(canvas, ctx, width, height, data, lines, {
+    left,
+    right,
+    xPositions
+  }, activeIndex);
 }
 
 function drawLineChart(ctx, width, height, data, lines){
