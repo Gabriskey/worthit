@@ -390,6 +390,38 @@ function hexToRgb(hex) {
   };
 }
 
+function colorToRgba(hex, alpha) {
+  const { r, g, b } = hexToRgb(hex);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+function blendGraphColors(fromColor, toColor, ratio = .5) {
+  const from = hexToRgb(fromColor);
+  const to = hexToRgb(toColor);
+  const blend = Math.max(0, Math.min(1, ratio));
+
+  return rgbToHex(
+    from.r + (to.r - from.r) * blend,
+    from.g + (to.g - from.g) * blend,
+    from.b + (to.b - from.b) * blend
+  );
+}
+
+function traceGraphLineSegment(ctx, startX, startY, endX, endY) {
+  const controlOffset = (endX - startX) * .36;
+
+  ctx.beginPath();
+  ctx.moveTo(startX, startY);
+  ctx.bezierCurveTo(
+    startX + controlOffset,
+    startY,
+    endX - controlOffset,
+    endY,
+    endX,
+    endY
+  );
+}
+
 function rgbToHex(r, g, b) {
   const clamp = (value) => Math.max(0, Math.min(255, Math.round(value)));
   return `#${[clamp(r), clamp(g), clamp(b)]
@@ -1208,6 +1240,7 @@ for (let i = 0; i <= tickCount; i++) {
 
   ctx.strokeStyle = 'rgba(255,255,255,0.06)';
   ctx.lineWidth = 1;
+  ctx.setLineDash([4, 4]);
   ctx.beginPath();
   ctx.moveTo(plotLeft, y);
   ctx.lineTo(plotLeft + plotWidth, y);
@@ -1222,11 +1255,14 @@ sorted.forEach((entry, index) => {
 
   ctx.strokeStyle = 'rgba(255,255,255,0.06)';
   ctx.lineWidth = 1;
+  ctx.setLineDash([4, 4]);
   ctx.beginPath();
   ctx.moveTo(x, plotTop);
   ctx.lineTo(x, plotBottom + 8);
   ctx.stroke();
 });
+
+ctx.setLineDash([]);
 
 ctx.fillStyle = textColor;
 ctx.font = '600 13px Inter, sans-serif';
@@ -1249,23 +1285,29 @@ ctx.font = '600 13px Inter, sans-serif';
   const drawY = prevY + (y - prevY) * segmentProgress;
   const drawX = prevX + (x - prevX) * segmentProgress;
 
-  const lineColor = getCompanySettings(prev.job, prev.color).color || prev.color || pointColor;
-ctx.strokeStyle = prev.isMonthlyAggregate ? prev.color : lineColor;
-ctx.lineWidth = 3;
-ctx.lineCap = 'round';
-ctx.lineJoin = 'round';
-  ctx.beginPath();
-  ctx.moveTo(prevX, prevY);
-  const controlX = (prevX + drawX) / 2;
+  const previousColor = prev.isMonthlyAggregate
+    ? prev.color
+    : getCompanySettings(prev.job, prev.color).color || prev.color || pointColor;
+  const blendedColor = blendGraphColors(previousColor, pointColor);
+  const areaGradient = ctx.createLinearGradient(0, plotTop, 0, plotBottom);
+  areaGradient.addColorStop(0, colorToRgba(blendedColor, .24));
+  areaGradient.addColorStop(1, colorToRgba(blendedColor, 0));
 
-ctx.bezierCurveTo(
-  controlX,
-  prevY,
-  controlX,
-  drawY,
-  drawX,
-  drawY
-);
+  traceGraphLineSegment(ctx, prevX, prevY, drawX, drawY);
+  ctx.lineTo(drawX, plotBottom);
+  ctx.lineTo(prevX, plotBottom);
+  ctx.closePath();
+  ctx.fillStyle = areaGradient;
+  ctx.fill();
+
+  const lineGradient = ctx.createLinearGradient(prevX, prevY, drawX, drawY);
+  lineGradient.addColorStop(0, previousColor);
+  lineGradient.addColorStop(1, pointColor);
+  traceGraphLineSegment(ctx, prevX, prevY, drawX, drawY);
+  ctx.strokeStyle = lineGradient;
+  ctx.lineWidth = 3.5;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
   ctx.stroke();
 
   const monthsBetween = monthDiff(
