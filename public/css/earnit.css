@@ -26,7 +26,8 @@ body.light-mode {
 
     body {
       margin: 0;
-      font-family: "Segoe UI", Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      font-family: "Manrope", "Segoe UI", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      font-weight: 500;
       color: var(--text);
       min-height: 100vh;
       overflow-x: hidden;
@@ -249,6 +250,47 @@ body.insights-mode .home-only {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 18px;
   align-items: stretch;
+}
+
+.income-dashboard-hero {
+  display: grid;
+  gap: 12px;
+  align-items: stretch;
+}
+
+.income-summary-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.income-add-btn {
+  flex: 0 0 auto;
+}
+
+.income-dashboard-hero .dashboard-summary {
+  width: 100%;
+  max-width: none;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
+.income-dashboard-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.income-entries-panel,
+.income-sources-panel {
+  min-width: 0;
+}
+
+.income-entry-modal {
+  width: min(720px, 100%);
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
 }
 
     .home-card {
@@ -1037,12 +1079,208 @@ body.light-mode .company-eye-icon {
       word-break: break-word;
     }
 
+    .entry-actions {
+      display: grid;
+      justify-items: end;
+      gap: 8px;
+      flex: 0 0 auto;
+    }
+
+    .entry-amount {
+      color: var(--accent);
+      font-size: 1rem;
+      white-space: nowrap;
+    }
+
     .entry-meta {
       color: var(--muted);
       font-size: 0.9rem;
       display: flex;
       flex-wrap: wrap;
       gap: 12px;
+    }
+
+    .income-entries-panel,
+    .income-sources-panel {
+      padding: 12px;
+    }
+
+    .income-panel-header {
+      display: flex;
+      align-items: start;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .income-panel-header h2 {
+      margin: 0;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .income-entry-filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 2px;
+      margin-top: 5px;
+    }
+
+    .income-entry-filter,
+    .income-source-add-btn {
+      border: 0;
+      border-radius: 5px;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      font: inherit;
+      font-size: 0.68rem;
+      font-weight: 500;
+      line-height: 1.2;
+      padding: 3px 5px;
+    }
+
+    .income-entry-filter:hover,
+    .income-source-add-btn:hover,
+    .income-entry-filter.is-active {
+      color: var(--accent);
+    }
+
+    .income-entry-filter.is-active {
+      background: rgba(124,153,255,0.12);
+    }
+
+    .income-source-add-btn {
+      white-space: nowrap;
+    }
+
+    .income-entries-panel .entries {
+      margin-top: 0;
+      gap: 4px;
+      max-height: 500px;
+    }
+
+    .income-entries-panel .entry {
+      border-radius: 8px;
+      gap: 4px;
+      padding: 8px;
+    }
+
+    .income-entries-panel .entry-top {
+      align-items: start;
+      gap: 8px;
+    }
+
+    .income-entries-panel .entry-title {
+      gap: 6px;
+    }
+
+    .income-entries-panel .entry-title .swatch {
+      width: 9px !important;
+      height: 9px !important;
+    }
+
+    .income-entries-panel .entry-title strong,
+    .income-sources-panel .company-name {
+      font-size: 0.72rem;
+      font-weight: 600;
+    }
+
+    .income-entries-panel .entry-meta {
+      font-size: 0.64rem;
+      font-weight: 500;
+      gap: 4px;
+      margin-top: 2px;
+    }
+
+    .income-entries-panel .entry-actions {
+      gap: 4px;
+    }
+
+    .income-entries-panel .entry-amount {
+      font-size: 0.72rem;
+      font-weight: 600;
+    }
+
+    .income-entries-panel .entry-actions > div {
+      display: flex;
+      gap: 4px;
+    }
+
+    .income-entries-panel .entry-actions .btn,
+    .income-sources-panel .company-actions .btn {
+      border-radius: 5px;
+      font-size: 0.62rem;
+      line-height: 1.1;
+      min-height: 0;
+      padding: 3px 5px;
+    }
+
+    .income-entries-panel .hint,
+    .income-sources-panel .hint {
+      font-size: 0.64rem;
+      line-height: 1.3;
+    }
+
+    .income-sources-panel .company-list {
+      margin-top: 0;
+      gap: 4px;
+    }
+
+    .income-sources-panel .company-item {
+      border-radius: 8px;
+      padding: 8px;
+    }
+
+    .income-sources-panel .company-row {
+      gap: 6px;
+    }
+
+    .income-sources-panel .company-name {
+      gap: 6px !important;
+    }
+
+    .income-sources-panel .company-color-preview {
+      width: 9px;
+      height: 9px;
+    }
+
+    .income-sources-panel .company-meta {
+      font-size: 0.62rem;
+      gap: 2px;
+      margin-top: 3px;
+    }
+
+    .income-sources-panel .company-meta-line {
+      line-height: 1.3;
+    }
+
+    .income-sources-panel .company-meta-line:first-child {
+      display: grid;
+      gap: 2px;
+    }
+
+    .income-sources-panel .company-income-type {
+      color: var(--accent);
+      font-weight: 500;
+    }
+
+    .income-sources-panel .company-actions {
+      gap: 3px;
+    }
+
+    .income-sources-panel .company-toggle-btn {
+      width: 20px;
+      min-width: 20px;
+      height: 20px;
+    }
+
+    .income-sources-panel .company-eye-icon {
+      width: 14px;
+      height: 12px;
+      margin: 0;
     }
 
     .empty {
@@ -1250,8 +1488,43 @@ textarea:focus {
 
 @media (max-width: 720px) {
 
+  .income-dashboard-hero .dashboard-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .dashboard-summary {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .income-summary-row {
+    align-items: stretch;
+    grid-template-columns: 1fr;
+  }
+
+  .income-add-btn {
+    width: 100%;
+  }
+
+  .income-entry-modal {
+    width: 100%;
+  }
+
+  .entry-top {
+    flex-direction: column;
+  }
+
+  .income-entries-panel .entry-actions {
+    width: auto;
+    justify-items: end;
+  }
+
+  .income-entries-panel .entry-actions > div {
+    display: flex;
+    gap: 8px;
+  }
+
+  .income-entries-panel .entry-actions .btn {
+    flex: 0 0 auto;
   }
 
   .graph-top-row,
@@ -1277,6 +1550,7 @@ textarea:focus {
 
 @media (max-width: 1080px) {
   .grid { grid-template-columns: 1fr; }
+  .income-dashboard-grid { grid-template-columns: 1fr; }
   .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .insights-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
@@ -1742,7 +2016,17 @@ textarea:focus {
 }
 
 @media (max-width: 900px) {
+  .income-dashboard-hero .dashboard-summary {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
   .dashboard-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .income-dashboard-hero .dashboard-summary {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -1754,6 +2038,166 @@ textarea:focus {
   background: #252b25 !important;
   border-color: rgba(215,169,88,0.35) !important;
   transform: translateY(-1px);
+}
+
+html {
+  scroll-padding-top: var(--income-scroll-offset, 82px);
+  scroll-snap-type: y mandatory;
+}
+
+.app.with-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin: 0 auto 40px;
+}
+
+.income-scroll-section {
+  display: block !important;
+  order: 1;
+  scroll-margin-top: var(--income-scroll-offset, 82px);
+  scroll-snap-align: start;
+}
+
+.income-graph-section {
+  order: 2;
+  min-height: calc(100dvh - var(--income-scroll-offset, 82px));
+  padding: 18px 0;
+}
+
+.income-insights-section {
+  order: 3;
+  min-height: calc(100dvh - var(--income-scroll-offset, 82px));
+  padding: 18px 0 40px;
+}
+
+.income-dashboard-section {
+  display: flex !important;
+  flex-direction: column;
+  gap: 16px;
+  min-height: calc(100dvh - var(--income-scroll-offset, 82px));
+  padding: 18px 0;
+}
+
+.income-dashboard-section .income-dashboard-grid {
+  flex: 1 0 auto;
+}
+
+.income-graph-section > .card {
+  min-height: calc(100dvh - var(--income-scroll-offset, 82px) - 36px);
+}
+
+.income-dashboard-hero .dashboard-summary {
+  gap: 0;
+  overflow: hidden;
+  border: 1px solid rgba(215,169,88,0.2);
+  border-radius: 10px;
+  background: rgba(215,169,88,0.045);
+}
+
+.income-dashboard-hero .dashboard-mini-card {
+  min-width: 0;
+  border: 0;
+  border-right: 1px solid rgba(215,169,88,0.16);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 8px 10px;
+}
+
+.income-dashboard-hero .dashboard-mini-card:last-child {
+  border-right: 0;
+}
+
+.income-dashboard-hero .dashboard-mini-label {
+  margin-bottom: 3px;
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.income-dashboard-hero .dashboard-mini-value {
+  font-size: clamp(0.82rem, 1.2vw, 1rem);
+  font-weight: 700;
+}
+
+.income-entries-panel .entry-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.income-entries-panel .entry-amount {
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.income-entry-edit-btn {
+  width: auto;
+  min-width: 0;
+  height: auto;
+  margin-left: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  color: var(--accent);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.income-entry-edit-btn:hover,
+.income-entry-edit-btn:focus-visible {
+  background: transparent;
+  color: var(--accent-hover, #f0c56d);
+  transform: scale(1.12);
+}
+
+.entry-delete-btn {
+  margin-right: auto;
+}
+
+@media (max-width: 900px) {
+  .income-dashboard-hero .dashboard-mini-card:nth-child(3n) {
+    border-right: 0;
+  }
+
+  .income-dashboard-hero .dashboard-mini-card:nth-child(n + 4) {
+    border-top: 1px solid rgba(215,169,88,0.16);
+  }
+}
+
+@media (max-width: 720px) {
+  html {
+    scroll-snap-type: y proximity;
+  }
+
+  .income-dashboard-section,
+  .income-graph-section,
+  .income-insights-section {
+    padding: 12px 0;
+  }
+
+  .income-graph-section > .card {
+    min-height: calc(100dvh - var(--income-scroll-offset, 82px) - 24px);
+  }
+
+  .income-dashboard-hero .dashboard-mini-card {
+    border-right: 1px solid rgba(215,169,88,0.16);
+  }
+
+  .income-dashboard-hero .dashboard-mini-card:nth-child(2n) {
+    border-right: 0;
+  }
+
+  .income-dashboard-hero .dashboard-mini-card:nth-child(n + 3) {
+    border-top: 1px solid rgba(215,169,88,0.16);
+  }
 }
 
 .data-btn,

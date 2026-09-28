@@ -3,6 +3,13 @@
     const UI_STORAGE_KEY = 'salary-growth-tracker-ui-v1';
     const COMPANY_STORAGE_KEY = 'salary-growth-tracker-companies-v1';
     const form = document.getElementById('entryForm');
+    const entryModalBackdrop = document.getElementById('entryModalBackdrop');
+    const entryModalTitle = document.getElementById('entryModalTitle');
+    const openEntryModalBtn = document.getElementById('openEntryModalBtn');
+    const openSourceModalBtn = document.getElementById('openSourceModalBtn');
+    const closeEntryModalBtn = document.getElementById('closeEntryModalBtn');
+    const cancelEntryModalBtn = document.getElementById('cancelEntryModalBtn');
+    const dashboardIncomeTypeButtons = document.querySelectorAll('[data-entry-income-type]');
     const entriesList = document.getElementById('entriesList');
     const companiesList = document.getElementById('companiesList');
 
@@ -21,7 +28,8 @@
     const jobInput = document.getElementById('jobInput');
     const incomeTypeSelect = document.getElementById('incomeTypeSelect');
     const editingIdInput = document.getElementById('editingId');
-    const submitBtn = document.getElementById('submitBtn');
+const submitBtn = document.getElementById('submitBtn');
+const entryFormCard = document.getElementById('entryFormCard');
     const pages = document.querySelectorAll('.page');
     const zoomButtons = document.querySelectorAll('.zoom-btn');
     const rangeSelect = document.getElementById('rangeSelect');
@@ -91,6 +99,10 @@ const deleteEntryModalText =
   document.getElementById(
     'deleteEntryModalText'
   );
+const deleteEntryFromEditBtn =
+  document.getElementById(
+    'deleteEntryFromEditBtn'
+  );
 
 const deleteSpendItOption =
   document.getElementById(
@@ -156,6 +168,7 @@ let viewStart = uiState.viewStart || new Date().toISOString().slice(0, 7);
 let graphMode = uiState.graphMode || 'monthly';
 let graphIncomeType = normalizeGraphIncomeTypeFilter(uiState.graphIncomeType);
 let insightsIncomeType = normalizeInsightsIncomeTypeFilter(uiState.insightsIncomeType);
+let dashboardIncomeType = 'all';
     let graphStyle = uiState.graphStyle || 'bar';
     let showValueLabels = uiState.showValueLabels ?? true;
     let activePage = uiState.activePage || localStorage.getItem(PAGE_STORAGE_KEY) || 'homePage';
@@ -1165,7 +1178,8 @@ function getInsightsData(sorted) {
             firstDate: info.firstDate,
             lastDate: info.lastDate,
             color: settings.color,
-            notes: settings.notes
+            notes: settings.notes,
+            incomeType: settings.incomeType || getCompanyIncomeTypeForEditing(name)
           };
         })
         .sort((a, b) => a.name.localeCompare(b.name));
@@ -1203,9 +1217,11 @@ function renderCompaniesList() {
             </div>
 
             <div class="company-meta">
-              <div class="company-meta-line">${company.count} Entr${company.count === 1 ? 'y' : 'ies'}</div>
-              <div class="company-meta-line">${escapeHtml(formatMonthYear(company.firstDate))} to ${escapeHtml(formatMonthYear(company.lastDate))}</div>
-              <div class="company-meta-line">${escapeHtml(formatPeso(company.total))}</div>
+              <div class="company-meta-line">
+                <span class="company-income-type">${escapeHtml(company.incomeType ? getIncomeTypeLabel(company.incomeType) : 'Mixed / not set')}</span>
+                <span>${company.count} Entr${company.count === 1 ? 'y' : 'ies'} &middot; ${escapeHtml(formatPeso(company.total))}</span>
+              </div>
+              <div class="company-meta-line company-date-range">${escapeHtml(formatMonthYear(company.firstDate))} to ${escapeHtml(formatMonthYear(company.lastDate))}</div>
             </div>
 
             ${company.notes ? `<div class="hint" style="margin-top:6px;">${escapeHtml(company.notes)}</div>` : ''}
@@ -1286,7 +1302,7 @@ if (chartYAxisLabels) chartYAxisLabels.innerHTML = '';
 
   if (!sorted.length) {
     ctx.fillStyle = '#9aa4bf';
-    ctx.font = '16px Inter, sans-serif';
+    ctx.font = '16px Manrope, sans-serif';
     ctx.fillText(
       graphIncomeType === 'all'
         ? 'Add your first salary entry to see the graph.'
@@ -1315,7 +1331,7 @@ ctx.lineTo(plotLeft + plotWidth, plotBottom);
 ctx.stroke();
 
   const tickCount = 8;
-ctx.font = '12px Inter, sans-serif';
+ctx.font = '12px Manrope, sans-serif';
 ctx.fillStyle = subtle;
 
 for (let i = 0; i <= tickCount; i++) {
@@ -1349,7 +1365,7 @@ sorted.forEach((entry, index) => {
 ctx.setLineDash([]);
 
 ctx.fillStyle = textColor;
-ctx.font = '600 13px Inter, sans-serif';
+ctx.font = '600 13px Manrope, sans-serif';
 
   sorted.forEach((entry, index) => {
   const x = xForIndex(index);
@@ -1407,7 +1423,7 @@ ctx.font = '600 13px Inter, sans-serif';
     ctx.fillRect(startX, plotTop, gapWidth, plotHeight);
 
     ctx.fillStyle = '#ffb4b4';
-    ctx.font = '12px Inter, sans-serif';
+    ctx.font = '12px Manrope, sans-serif';
     ctx.fillText(
       `${monthsBetween} month${monthsBetween > 1 ? 's' : ''} gap`,
       startX + 8,
@@ -1468,7 +1484,7 @@ ctx.stroke();
 
   if (showValueLabels && hoveredPointIndex !== index) {
     ctx.fillStyle = textColor;
-    ctx.font = isHovered ? '700 12px Inter, sans-serif' : '600 12px Inter, sans-serif';
+    ctx.font = isHovered ? '700 12px Manrope, sans-serif' : '600 12px Manrope, sans-serif';
     ctx.fillText(formatPeso(entry.salary), x - 28, y - 18);
   }
 
@@ -1494,10 +1510,10 @@ if (isFirstEntryOfMonth) {
   ctx.textAlign = 'center';
   ctx.fillStyle = subtle;
 
-  ctx.font = '700 11px Inter, sans-serif';
+  ctx.font = '700 11px Manrope, sans-serif';
   ctx.fillText(monthLabel, x, plotBottom + 22);
 
-  ctx.font = '500 10px Inter, sans-serif';
+  ctx.font = '500 10px Manrope, sans-serif';
   ctx.fillText(yearLabel, x, plotBottom + 36);
 
   ctx.restore();
@@ -1657,44 +1673,40 @@ function renderHeroSummary(sorted) {
 function syncActivePage() {
 
   pages.forEach(page => {
-    page.classList.toggle('active', page.id === activePage);
+    page.classList.add('active');
   });
 
-  document.body.classList.toggle('graph-mode', activePage === 'graphPage');
-  document.body.classList.toggle('insights-mode', activePage === 'insightsPage');
-  
-  window.updateWorthItSubNavigation?.(activePage);
+  document.body.classList.remove('graph-mode', 'insights-mode');
 }
 
 window.setPage = function(pageId) {
-  const validPages = [
-    "homePage",
-    "graphPage",
-    "insightsPage"
-  ];
-
-  if (!validPages.includes(pageId)) return;
-
-  activePage = pageId;
-
-localStorage.setItem(
-  PAGE_STORAGE_KEY,
-  activePage
-);
-
-window.saveEarnItKeyToCloud?.(
-  PAGE_STORAGE_KEY,
-  activePage
-);
-
-  saveUiState();
-  renderAll();
+  document
+    .getElementById(pageId)
+    ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 };
+
+function syncIncomeScrollOffset() {
+  const shell = document.getElementById('worthitShell');
+  if (!shell) return;
+
+  document.documentElement.style.setProperty(
+    '--income-scroll-offset',
+    `${shell.getBoundingClientRect().height}px`
+  );
+}
 
     function renderEntries() {
   const sorted = [...entries]
   .map(sanitizeEntry)
-  .filter(entry => entry.job && entry.date && Number.isFinite(entry.salary))
+  .filter(entry =>
+    entry.job &&
+    entry.date &&
+    Number.isFinite(entry.salary) &&
+    (
+      dashboardIncomeType === 'all' ||
+      normalizeIncomeType(entry.incomeType) === dashboardIncomeType
+    )
+  )
   .reverse();
   if (!sorted.length) {
     entriesList.innerHTML = '<div class="empty">No income entries yet.</div>';
@@ -1711,15 +1723,13 @@ window.saveEarnItKeyToCloud?.(
           <div>
             <strong>${escapeHtml(entry.job)}</strong>
             <div class="entry-meta">
-              <span>${escapeHtml(getIncomeTypeLabel(entry.incomeType))}</span>
-              <span>${escapeHtml(formatEntryDateTime(entry))}</span>
-              <span>${escapeHtml(formatPeso(entry.salary))}</span>
+              <span>${escapeHtml(getIncomeTypeLabel(entry.incomeType))} &middot; ${escapeHtml(formatMonthYear(entry.date))}</span>
             </div>
           </div>
         </div>
-        <div style="display:flex; gap:8px; flex-wrap:wrap;">
-          <button class="btn" type="button" onclick="editEntry('${entry.id}')">Edit</button>
-          <button class="btn" type="button" onclick="removeEntry('${entry.id}')">Delete</button>
+        <div class="entry-actions">
+          <strong class="entry-amount">${escapeHtml(formatPeso(entry.salary))}</strong>
+          <button class="wishlist-icon-btn income-entry-edit-btn" type="button" onclick="editEntry('${entry.id}')" title="Edit income entry" aria-label="Edit income entry">✎</button>
         </div>
       </div>
       ${entry.notes ? `<div class="hint">${escapeHtml(entry.notes)}</div>` : ''}
@@ -2457,6 +2467,40 @@ async function saveCompanyEdits() {
   renderAll();
 }
 
+function resetEntryForm() {
+  form.reset();
+  editingIdInput.value = '';
+  jobSelect.value = '';
+  document.getElementById('colorInput').value = '#7c99ff';
+  entryModalTitle.textContent = 'Add Income';
+  submitBtn.textContent = 'Add Income';
+  deleteEntryFromEditBtn.hidden = true;
+}
+
+function openEntryModal() {
+  entryModalBackdrop.classList.add('open');
+  entryModalBackdrop.setAttribute('aria-hidden', 'false');
+  setTimeout(() => incomeTypeSelect.focus(), 0);
+}
+
+function closeEntryModal() {
+  entryModalBackdrop.classList.remove('open');
+  entryModalBackdrop.setAttribute('aria-hidden', 'true');
+  entryFormCard.classList.remove('editing-glow');
+  resetEntryForm();
+}
+
+function openAddEntryModal() {
+  resetEntryForm();
+  openEntryModal();
+}
+
+function openAddSourceModal() {
+  resetEntryForm();
+  openEntryModal();
+  setTimeout(() => jobInput.focus(), 0);
+}
+
     function editEntry(id) {
   const entry = entries.find(item => item.id === id);
   if (!entry) return;
@@ -2479,14 +2523,11 @@ document.getElementById(
   clean.spendItAccountId || "";
   document.getElementById('colorInput').value = clean.color;
   document.getElementById('notesInput').value = clean.notes;
-  submitBtn.textContent = 'Update entry';
+  entryModalTitle.textContent = 'Edit Income';
+  submitBtn.textContent = 'Update Income';
+  deleteEntryFromEditBtn.hidden = false;
 
-  const entryFormCard = document.getElementById('entryFormCard');
-
-entryFormCard?.scrollIntoView({
-  behavior: 'smooth',
-  block: 'center'
-});
+  openEntryModal();
 
 entryFormCard?.classList.remove('editing-glow');
 
@@ -2503,6 +2544,37 @@ setTimeout(() => {
   window.editEntry = editEntry;
   window.openCompanyModal = openCompanyModal;
   window.toggleCompanyVisibility = toggleCompanyVisibility;
+
+openEntryModalBtn?.addEventListener('click', openAddEntryModal);
+openSourceModalBtn?.addEventListener('click', openAddSourceModal);
+deleteEntryFromEditBtn?.addEventListener('click', () => {
+  const entryId = editingIdInput.value;
+  if (!entryId) return;
+
+  closeEntryModal();
+  removeEntry(entryId);
+});
+closeEntryModalBtn?.addEventListener('click', closeEntryModal);
+cancelEntryModalBtn?.addEventListener('click', closeEntryModal);
+entryModalBackdrop?.addEventListener('click', event => {
+  if (event.target === entryModalBackdrop) {
+    closeEntryModal();
+  }
+});
+
+dashboardIncomeTypeButtons.forEach(button => {
+  button.addEventListener('click', () => {
+    dashboardIncomeType = button.dataset.entryIncomeType || 'all';
+
+    dashboardIncomeTypeButtons.forEach(filterButton => {
+      const isActive = filterButton === button;
+      filterButton.classList.toggle('is-active', isActive);
+      filterButton.setAttribute('aria-pressed', String(isActive));
+    });
+
+    renderEntries();
+  });
+});
 
     jobSelect.addEventListener('change', () => {
   if (jobSelect.value) {
@@ -2632,6 +2704,16 @@ document.addEventListener(
         ?.classList.contains('open')
     ) {
       closeDeleteEntryModal();
+    }
+
+    if (
+      event.key === 'Escape' &&
+      entryModalBackdrop
+        ?.classList.contains('open') &&
+      !spendItAccountModalBackdrop
+        ?.classList.contains('open')
+    ) {
+      closeEntryModal();
     }
 
   }
@@ -2960,16 +3042,16 @@ try {
   }
 
 }
-  form.reset();
-  editingIdInput.value = '';
-  jobSelect.value = '';
-  document.getElementById('colorInput').value = '#7c99ff';
-  submitBtn.textContent = 'Add entry';
+  closeEntryModal();
   renderAll();
 });
 
 
-    window.addEventListener('resize', renderAll);
+    window.addEventListener('resize', () => {
+  syncIncomeScrollOffset();
+  renderAll();
+});
+window.addEventListener('load', syncIncomeScrollOffset);
 window.reloadEarnItFromStorage =
   function() {
 

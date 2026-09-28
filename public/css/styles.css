@@ -105,7 +105,8 @@
 body {
   color: var(--text);
   line-height: 1.6;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', Arial, sans-serif;
+  font-family: "Manrope", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  font-weight: 500;
   overflow-x: hidden;
   overflow-y: scroll;
   transition: background-color 0.3s ease, color 0.3s ease;
@@ -1066,10 +1067,12 @@ td.remove-cell {
   gap: 0.65rem;
   padding: 0.55rem 0.9rem;
   align-items: center;
+  font-family: inherit;
 }
 
 .wishlist-table-row {
   min-height: 44px;
+  font-weight: 500;
 }
 
 .wishlist-actions-cell {
@@ -1093,6 +1096,7 @@ td.remove-cell {
   letter-spacing: 0.1em;
   text-transform: uppercase;
   border-bottom: 1px solid var(--border);
+  font-weight: 600;
 }
 
 .wishlist-table-header > div {
@@ -1139,6 +1143,8 @@ td.remove-cell {
   min-width: 40px;
   padding: 0.25rem 0.5rem;
   transition: all 0.3s ease;
+  font-family: inherit;
+  font-weight: 500;
 }
 
 .wishlist-editable:hover {

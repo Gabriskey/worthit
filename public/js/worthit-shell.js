@@ -13,20 +13,7 @@ const APP_CONFIG = {
 
   earnit: {
     name: "Income",
-    pages: [
-      {
-        label: "Dashboard",
-        pageId: "homePage"
-      },
-      {
-        label: "Graph",
-        pageId: "graphPage"
-      },
-      {
-        label: "Insights",
-        pageId: "insightsPage"
-      }
-    ]
+    pages: []
   },
 
   spendit: {

@@ -17,13 +17,9 @@
 ></header>
 
 <div class="app with-header">
-  <section class="hero home-only">
-    <div>
-      <h1>Visualize how your income grows over time.</h1>
-      <p class="subtitle">
-        Add each income entry, compare sources, and spot months or years with no income at a glance.
-      </p>
-    </div>
+  <section id="homePage" class="page active income-scroll-section income-dashboard-section">
+  <section class="hero home-only income-dashboard-hero">
+    <div class="income-summary-row">
 <div class="dashboard-summary" aria-label="Income dashboard summary">
   <div class="dashboard-mini-card">
     <div class="dashboard-mini-label">Entries</div>
@@ -55,13 +51,16 @@
     <div class="dashboard-mini-value" id="heroTotalTracked">₱0</div>
   </div>
 </div>
+    </div>
   </section>
 
-    <section id="homePage" class="page active">
-
-  <section class="grid">
-  <aside class="card home-card entry-form-card" id="entryFormCard">
-    <h2>ADD INCOME ENTRY</h2>
+  <section class="income-dashboard-grid">
+  <div id="entryModalBackdrop" class="modal-backdrop" aria-hidden="true">
+  <div class="modal income-entry-modal entry-form-card" id="entryFormCard" role="dialog" aria-modal="true" aria-labelledby="entryModalTitle">
+    <div class="modal-header">
+      <h3 id="entryModalTitle">Add Income</h3>
+      <button class="btn" type="button" id="closeEntryModalBtn">Close</button>
+    </div>
     <form id="entryForm" class="form">
       <input type="hidden" id="editingId" value="" />
 
@@ -143,28 +142,47 @@
         </div>
       </div>
 
-      <button class="btn primary" id="submitBtn" type="submit">Add entry</button>
+      <div class="modal-actions">
+        <button class="btn ghost-danger entry-delete-btn" id="deleteEntryFromEditBtn" type="button" hidden>Delete Entry</button>
+        <button class="btn" id="cancelEntryModalBtn" type="button">Cancel</button>
+        <button class="btn primary" id="submitBtn" type="submit">Add Income</button>
+      </div>
     </form>
 
     <div class="footnote">
-      Add, edit, and organize your income entries here. Open the Graph tab above to view the chart and zoom controls.
+      Add, edit, and organize your income entries here. Scroll to the graph below for the chart and zoom controls.
     </div>
-  </aside>
+  </div>
+  </div>
 
-  <section class="card home-card">
-    <h2>SAVED ENTRIES</h2>
+  <section class="card home-card income-entries-panel">
+    <div class="income-panel-header">
+      <div>
+        <h2>Income Entries</h2>
+        <div class="income-entry-filters" role="group" aria-label="Filter income entries by type">
+          <button class="income-entry-filter is-active" type="button" data-entry-income-type="all" aria-pressed="true">All</button>
+          <button class="income-entry-filter" type="button" data-entry-income-type="salary" aria-pressed="false">Salary</button>
+          <button class="income-entry-filter" type="button" data-entry-income-type="sales" aria-pressed="false">Sales</button>
+          <button class="income-entry-filter" type="button" data-entry-income-type="project" aria-pressed="false">Project</button>
+        </div>
+      </div>
+      <button class="income-source-add-btn income-entry-add-btn" id="openEntryModalBtn" type="button">+ Add Income</button>
+    </div>
     <div id="entriesList" class="entries"></div>
   </section>
 
-  <section class="card home-card">
-    <h2>SAVED SOURCES</h2>
+  <section class="card home-card income-sources-panel">
+    <div class="income-panel-header">
+      <h2>Sources</h2>
+      <button class="income-source-add-btn" id="openSourceModalBtn" type="button">+ Add Source</button>
+    </div>
     <div id="companiesList" class="company-list"></div>
   </section>
 </section>
 
 </section>
 
-<section id="insightsPage" class="page">
+<section id="insightsPage" class="page income-scroll-section income-insights-section">
   <section class="card">
     <div class="insights-controls">
       <select id="insightsIncomeTypeFilter" class="chart-range-select" aria-label="Filter insights by income type">
@@ -264,7 +282,7 @@
   </section>
 </section>
 
-<section id="graphPage" class="page">
+<section id="graphPage" class="page income-scroll-section income-graph-section">
   <section class="card">
 <div class="paypath-graph-card">
   <div class="paypath-chart-top-row">

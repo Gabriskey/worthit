@@ -1142,7 +1142,7 @@ records
     ctx.fill();
 
     ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--text-secondary');
-    ctx.font = '12px Segoe UI';
+    ctx.font = '12px Manrope, sans-serif';
     ctx.fillText(d.label, x - 12, height - 10);
   });
 }
@@ -1624,7 +1624,7 @@ function renderDashboardSpendingMixChart(){
 
 function drawEmptyChart(ctx, text){
   ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--text-secondary');
-  ctx.font = '14px Segoe UI';
+  ctx.font = '14px Manrope, sans-serif';
   ctx.fillText(text, 20, 40);
 }
 
@@ -1649,7 +1649,7 @@ function drawYAxisLabels(ctx, left, top, bottom, max){
   const roundedMax = roundUpTo5k(max);
 
   ctx.fillStyle = labelColor;
-  ctx.font = '11px Segoe UI';
+  ctx.font = '11px Manrope, sans-serif';
   ctx.textAlign = 'right';
   ctx.textBaseline = 'middle';
 
@@ -1818,7 +1818,7 @@ function drawCashFlowYAxisLabels(ctx, left, top, bottom, max){
   const steps = 4;
 
   ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--text-secondary');
-  ctx.font = '600 11px "Segoe UI", Inter, sans-serif';
+  ctx.font = '600 11px Manrope, sans-serif';
   ctx.textAlign = 'right';
   ctx.textBaseline = 'middle';
 
@@ -1979,7 +1979,7 @@ function drawCashFlowChart(ctx, width, height, data, lines, activeIndex = -1){
   }
 
   ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--text-secondary');
-  ctx.font = '600 11px "Segoe UI", Inter, sans-serif';
+  ctx.font = '600 11px Manrope, sans-serif';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'top';
 
@@ -2049,7 +2049,7 @@ function drawLineChart(ctx, width, height, data, lines){
   });
 
   ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--text-secondary');
-  ctx.font = '12px Segoe UI';
+  ctx.font = '12px Manrope, sans-serif';
 
   data.forEach((d, i) => {
     if (data.length > 12 && i % Math.ceil(data.length / 8) !== 0) return;
@@ -2099,7 +2099,7 @@ function drawStackedSpendChart(ctx, width, height, data){
   });
 
   ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--text-secondary');
-  ctx.font = '12px Segoe UI';
+  ctx.font = '12px Manrope, sans-serif';
 
   data.forEach((d, i) => {
     if (data.length > 14 && i % Math.ceil(data.length / 8) !== 0) return;
@@ -2131,11 +2131,11 @@ function drawDonut(ctx, width, height, data, total){
   });
 
   ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--text-secondary');
-  ctx.font = '12px Segoe UI';
+  ctx.font = '12px Manrope, sans-serif';
   ctx.textAlign = 'center';
   ctx.fillText('total spend', cx, cy - 6);
   ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--text');
-  ctx.font = '700 14px Segoe UI';
+  ctx.font = '700 14px Manrope, sans-serif';
   ctx.fillText(money(total), cx, cy + 14);
   ctx.textAlign = 'left';
 }
