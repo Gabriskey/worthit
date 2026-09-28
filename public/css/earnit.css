@@ -339,6 +339,42 @@ body.light-mode input[type="date"]::-webkit-calendar-picker-indicator {
   padding-top: 54px;
 }
 
+.insights-controls {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.income-type-breakdown {
+  display: grid;
+  gap: 10px;
+}
+
+.income-type-breakdown-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--muted);
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.income-type-breakdown-row strong {
+  color: var(--text);
+  font-size: 0.92rem;
+}
+
+.income-type-breakdown-amount {
+  display: grid;
+  justify-items: end;
+  gap: 2px;
+}
+
+.income-type-breakdown-amount span {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
 .job-performance-card {
   grid-column: 1 / -1;
 }
@@ -1733,4 +1769,3 @@ textarea:focus {
   background: #e3b86a !important;
   color: #101214 !important;
 }
-

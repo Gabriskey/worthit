@@ -167,6 +167,15 @@
 
 <section id="insightsPage" class="page">
   <section class="card">
+    <div class="insights-controls">
+      <select id="insightsIncomeTypeFilter" class="chart-range-select" aria-label="Filter insights by income type">
+        <option value="all">Income Type: All Income</option>
+        <option value="salary">Income Type: Salary / Wage</option>
+        <option value="sales">Income Type: Sales</option>
+        <option value="project">Income Type: Project / Gig / Task</option>
+      </select>
+    </div>
+
     <div class="insights-grid">
   <div class="stat insight-card">
     <div class="label">Total Growth Since First Entry</div>
@@ -187,13 +196,13 @@
   </div>
 
   <div class="stat insight-card">
-    <div class="label">Biggest Raise Ever</div>
+    <div class="label">Biggest Income Increase</div>
     <div class="value" id="insightBiggestRaise">—</div>
     <div class="insight-help">The biggest increase between two consecutive saved entries, shown in pesos and percent.</div>
   </div>
 
     <div class="stat insight-card">
-    <div class="label">Largest Salary Drop</div>
+    <div class="label">Largest Income Drop</div>
     <div class="value" id="insightLargestDrop">—</div>
     <div class="insight-help">The biggest decrease between two consecutive saved entries.</div>
   </div>
@@ -211,15 +220,15 @@
   </div>
 
   <div class="stat insight-card">
-    <div class="label">Highest Paying Entry Ever</div>
+    <div class="label">Highest Income Entry</div>
     <div class="value" id="insightHighestEntry">—</div>
-    <div class="insight-help">The single highest-paying saved salary entry in your full history.</div>
+    <div class="insight-help">The single highest-paying saved income entry in your full history.</div>
   </div>
 
   <div class="stat insight-card">
-    <div class="label">Longest Gap Without Work</div>
+    <div class="label">Longest Income Gap</div>
     <div class="value" id="insightLongestGap">—</div>
-    <div class="insight-help">The longest stretch of months between entries where no work or income was recorded.</div>
+    <div class="insight-help">The longest stretch of months between recorded income entries.</div>
   </div>
 
   <div class="stat insight-card">
@@ -229,21 +238,27 @@
   </div>
 
     <div class="stat insight-card">
-    <div class="label">Best Growth Company</div>
+    <div class="label">Best Growth Source</div>
     <div class="value" id="insightBestGrowthCompany">—</div>
-    <div class="insight-help">The company with the strongest growth from first entry to latest entry.</div>
+    <div class="insight-help">The source with the strongest growth from first entry to latest entry.</div>
   </div>
 
   <div class="stat insight-card">
-    <div class="label">Top Earning Company</div>
+    <div class="label">Top Earning Source</div>
     <div class="value" id="insightTopEarningCompany">—</div>
-    <div class="insight-help">The company with the highest total recorded income.</div>
+    <div class="insight-help">The source with the highest total recorded income.</div>
+  </div>
+
+  <div class="stat insight-card income-type-insight-card" id="insightIncomeByTypeCard">
+    <div class="label">Income by Type</div>
+    <div class="income-type-breakdown" id="insightIncomeByType"></div>
+    <div class="insight-help">How your recorded income is distributed across Salary / Wage, Sales, and Project / Gig / Task entries.</div>
   </div>
 
   <div class="stat insight-card job-performance-card">
-  <div class="label">Job Performance Comparison</div>
+  <div class="label">Source Performance Comparison</div>
   <div class="value job-performance-value" id="insightJobPerformance">—</div>
-  <div class="insight-help">Compares each company by salary growth, total tracked pay, number of entries, and time span.</div>
+  <div class="insight-help">Compares each source by income growth, total tracked income, number of entries, and time span.</div>
 </div>
 
 </div>

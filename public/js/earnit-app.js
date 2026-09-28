@@ -26,6 +26,7 @@
     const zoomButtons = document.querySelectorAll('.zoom-btn');
     const rangeSelect = document.getElementById('rangeSelect');
     const graphIncomeTypeFilter = document.getElementById('graphIncomeTypeFilter');
+    const insightsIncomeTypeFilter = document.getElementById('insightsIncomeTypeFilter');
     const toggleValueLabelsBtn = document.getElementById('toggleValueLabelsBtn');
     const graphStyleSwitchBtn = document.getElementById('graphStyleSwitchBtn');
     const graphModeSwitchBtn = document.getElementById('graphModeSwitchBtn');
@@ -139,6 +140,8 @@ const insightYearVsLast = document.getElementById('insightYearVsLast');
 const insightBestGrowthCompany = document.getElementById('insightBestGrowthCompany');
 const insightTopEarningCompany = document.getElementById('insightTopEarningCompany');
 const insightJobPerformance = document.getElementById('insightJobPerformance');
+const insightIncomeByTypeCard = document.getElementById('insightIncomeByTypeCard');
+const insightIncomeByType = document.getElementById('insightIncomeByType');
 
     let entries = loadEntries();
     let companySettings = loadCompanySettings();
@@ -151,6 +154,7 @@ let zoomMode = uiState.zoomMode || 'month';
 let viewStart = uiState.viewStart || new Date().toISOString().slice(0, 7);
 let graphMode = uiState.graphMode || 'monthly';
 let graphIncomeType = normalizeGraphIncomeTypeFilter(uiState.graphIncomeType);
+let insightsIncomeType = normalizeInsightsIncomeTypeFilter(uiState.insightsIncomeType);
     let graphStyle = uiState.graphStyle || 'bar';
     let showValueLabels = uiState.showValueLabels ?? true;
     let activePage = uiState.activePage || localStorage.getItem(PAGE_STORAGE_KEY) || 'homePage';
@@ -174,6 +178,7 @@ let graphIncomeType = normalizeGraphIncomeTypeFilter(uiState.graphIncomeType);
         zoomMode: 'month',
         graphMode: 'entries',
         graphIncomeType: 'all',
+        insightsIncomeType: 'all',
         graphStyle: 'line',
         showValueLabels: false,
         activePage: localStorage.getItem(PAGE_STORAGE_KEY) || 'homePage',
@@ -189,6 +194,7 @@ let graphIncomeType = normalizeGraphIncomeTypeFilter(uiState.graphIncomeType);
   viewStart: parsed.viewStart || new Date().toISOString().slice(0, 7),
   graphMode: parsed?.graphMode || 'monthly',
   graphIncomeType: normalizeGraphIncomeTypeFilter(parsed?.graphIncomeType),
+  insightsIncomeType: normalizeInsightsIncomeTypeFilter(parsed?.insightsIncomeType),
   graphStyle: parsed?.graphStyle || 'bar',
   showValueLabels: parsed.showValueLabels ?? true,
   activePage: parsed.activePage || localStorage.getItem(PAGE_STORAGE_KEY) || 'homePage',
@@ -201,6 +207,7 @@ return {
   viewStart: new Date().toISOString().slice(0, 7),
   graphMode: 'monthly',
   graphIncomeType: 'all',
+  insightsIncomeType: 'all',
   graphStyle: 'bar',
   showValueLabels: true,
   activePage: localStorage.getItem(PAGE_STORAGE_KEY) || 'homePage',
@@ -217,6 +224,7 @@ function saveUiState() {
       viewStart,
       graphMode,
       graphIncomeType,
+      insightsIncomeType,
       graphStyle,
       showValueLabels,
       activePage,
@@ -311,6 +319,12 @@ function saveEntries() {
     }
 
     function normalizeGraphIncomeTypeFilter(value) {
+      return ['all', 'salary', 'sales', 'project'].includes(value)
+        ? value
+        : 'all';
+    }
+
+    function normalizeInsightsIncomeTypeFilter(value) {
       return ['all', 'salary', 'sales', 'project'].includes(value)
         ? value
         : 'all';
@@ -535,6 +549,13 @@ chartTooltipDate.innerHTML = entry.isMonthlyAggregate
 
     function getVisibleSortedEntries() {
       return getSortedEntries().filter(entry => !hiddenCompanies.has(entry.job));
+    }
+
+    function getInsightsEntries(sorted) {
+      return sorted.filter(entry =>
+        insightsIncomeType === 'all' ||
+        normalizeIncomeType(entry.incomeType) === insightsIncomeType
+      );
     }
 
     function monthKeyFromDate(date) {
@@ -1564,6 +1585,12 @@ function syncGraphStyleSwitch() {
   const text = document.getElementById('chartSwitchText');
   if (text) text.textContent = isLine ? 'Line' : 'Bar';
 }
+
+function syncInsightsIncomeTypeFilter() {
+  if (insightsIncomeTypeFilter) {
+    insightsIncomeTypeFilter.value = insightsIncomeType;
+  }
+}
 function renderHeroSummary(sorted) {
   const companyCount = getSavedCompanies().length;
   const first = sorted.length ? sorted[0] : null;
@@ -1704,7 +1731,7 @@ function buildJobPerformanceComparison(sorted) {
 
   return `
     <div class="job-performance-row header-row">
-      <span>Company</span>
+      <span>Source</span>
       <span>Growth</span>
       <span>Total</span>
       <span>Entries</span>
@@ -1745,6 +1772,46 @@ function setInsightDetail(valueElement, html) {
   }
 
   detail.innerHTML = html || '';
+}
+
+function renderIncomeByTypeBreakdown(sorted) {
+  if (!insightIncomeByTypeCard || !insightIncomeByType) return;
+
+  const showBreakdown = insightsIncomeType === 'all';
+  insightIncomeByTypeCard.hidden = !showBreakdown;
+  if (!showBreakdown) return;
+
+  const totals = {
+    salary: 0,
+    sales: 0,
+    project: 0
+  };
+
+  sorted.forEach(entry => {
+    totals[normalizeIncomeType(entry.incomeType)] += entry.salary;
+  });
+
+  const combinedTotal = Object.values(totals)
+    .reduce((sum, total) => sum + total, 0);
+
+  insightIncomeByType.innerHTML = Object.entries(INCOME_TYPE_LABELS)
+    .map(([type, label]) => {
+      const total = totals[type];
+      const percentage = combinedTotal > 0
+        ? Math.round((total / combinedTotal) * 100)
+        : 0;
+
+      return `
+        <div class="income-type-breakdown-row">
+          <strong>${label}</strong>
+          <div class="income-type-breakdown-amount">
+            <strong>${formatPeso(total)}</strong>
+            <span>${percentage}%</span>
+          </div>
+        </div>
+      `;
+    })
+    .join('');
 }
 
 function getCompanyInsightExtras(sorted) {
@@ -1860,11 +1927,11 @@ function renderInsights(sorted) {
     insightBiggestRaise,
     insights.biggestRaiseFrom && insights.biggestRaiseTo
       ? `
-        <strong>Company:</strong> ${escapeHtml(insights.biggestRaiseTo.job)}<br>
+        <strong>Source:</strong> ${escapeHtml(insights.biggestRaiseTo.job)}<br>
         <strong>From:</strong> ${formatPeso(insights.biggestRaiseFrom.salary)} (${formatFullDate(insights.biggestRaiseFrom.date)})<br>
         <strong>To:</strong> ${formatPeso(insights.biggestRaiseTo.salary)} (${formatFullDate(insights.biggestRaiseTo.date)})
       `
-      : 'No same-company raise found yet.'
+      : 'No same-source income increase found yet.'
   );
 
     insightLargestDrop.textContent =
@@ -1876,11 +1943,11 @@ function renderInsights(sorted) {
     insightLargestDrop,
     extraInsights.largestDropFrom && extraInsights.largestDropTo
       ? `
-        <strong>Company:</strong> ${escapeHtml(extraInsights.largestDropTo.job)}<br>
+        <strong>Source:</strong> ${escapeHtml(extraInsights.largestDropTo.job)}<br>
         <strong>From:</strong> ${formatPeso(extraInsights.largestDropFrom.salary)} (${formatFullDate(extraInsights.largestDropFrom.date)})<br>
         <strong>To:</strong> ${formatPeso(extraInsights.largestDropTo.salary)} (${formatFullDate(extraInsights.largestDropTo.date)})
       `
-      : 'No salary drop found yet.'
+      : 'No income drop found yet.'
   );
 
   insightGrowth12Months.textContent = formatPercent(insights.growth12Months);
@@ -1916,7 +1983,7 @@ function renderInsights(sorted) {
     insightHighestEntry,
     insights.highestEntry
       ? `
-        <strong>Company:</strong> ${escapeHtml(insights.highestEntry.job)}<br>
+        <strong>Source:</strong> ${escapeHtml(insights.highestEntry.job)}<br>
         <strong>Date:</strong> ${formatFullDate(insights.highestEntry.date)}
       `
       : ''
@@ -1956,11 +2023,11 @@ function renderInsights(sorted) {
     insightBestGrowthCompany,
     extraInsights.bestGrowthCompany
       ? `
-        <strong>Company:</strong> ${escapeHtml(extraInsights.bestGrowthCompany.companyName)}<br>
+        <strong>Source:</strong> ${escapeHtml(extraInsights.bestGrowthCompany.companyName)}<br>
         <strong>From:</strong> ${formatPeso(extraInsights.bestGrowthCompany.first.salary)} (${formatFullDate(extraInsights.bestGrowthCompany.first.date)})<br>
         <strong>To:</strong> ${formatPeso(extraInsights.bestGrowthCompany.latest.salary)} (${formatFullDate(extraInsights.bestGrowthCompany.latest.date)})
       `
-      : 'Needs at least 2 entries in the same company.'
+      : 'Needs at least 2 entries from the same source.'
   );
 
   insightTopEarningCompany.textContent =
@@ -1972,14 +2039,15 @@ function renderInsights(sorted) {
     insightTopEarningCompany,
     extraInsights.topEarningCompany
       ? `
-        <strong>Company:</strong> ${escapeHtml(extraInsights.topEarningCompany.companyName)}<br>
+        <strong>Source:</strong> ${escapeHtml(extraInsights.topEarningCompany.companyName)}<br>
         <strong>Entries:</strong> ${extraInsights.topEarningCompany.entries.length}<br>
         <strong>Average:</strong> ${formatPeso(extraInsights.topEarningCompany.total / extraInsights.topEarningCompany.entries.length)}
       `
-      : 'No company data yet.'
+      : 'No source data yet.'
   );
 
   insightJobPerformance.innerHTML = buildJobPerformanceComparison(sorted);
+  renderIncomeByTypeBreakdown(sorted);
 }
 
 function renderAll(shouldAnimateChart = false) {
@@ -1994,6 +2062,7 @@ function renderAll(shouldAnimateChart = false) {
   renderCompaniesList();
   renderEntries();
   syncZoomButtons();
+  syncInsightsIncomeTypeFilter();
   syncGraphModeButtons();
   syncValueToggleButton();
   syncGraphStyleSwitch();
@@ -2004,7 +2073,7 @@ const sorted = getVisibleSortedEntries();
 const gaps = buildGaps(sorted);
 renderStats(sorted, gaps);
 renderHeroSummary(sorted);
-renderInsights(sorted);
+renderInsights(getInsightsEntries(sorted));
 
 let graphChart;
 
@@ -2520,6 +2589,11 @@ graphIncomeTypeFilter?.addEventListener('change', () => {
   saveUiState();
   renderAll();
 });
+insightsIncomeTypeFilter?.addEventListener('change', () => {
+  insightsIncomeType = normalizeInsightsIncomeTypeFilter(insightsIncomeTypeFilter.value);
+  saveUiState();
+  renderAll();
+});
 graphDateLabel?.addEventListener('change', () => {
   viewStart = graphDateLabel.value;
   clampViewStart();
@@ -2846,6 +2920,12 @@ window.reloadEarnItFromStorage =
     graphIncomeType =
       normalizeGraphIncomeTypeFilter(
         nextUiState.graphIncomeType
+      );
+
+
+    insightsIncomeType =
+      normalizeInsightsIncomeTypeFilter(
+        nextUiState.insightsIncomeType
       );
 
 
