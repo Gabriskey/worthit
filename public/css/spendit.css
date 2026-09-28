@@ -2,10 +2,10 @@
 :root[data-theme="dark"] {
   --bg: #101214;
   --bg-secondary: #0f1211;
-  --surface: #20251f;
-  --surface-2: #171a19;
-  --surface-3: #252b25;
-  --surface-hover: #252b25;
+  --surface: #18181b;
+  --surface-2: #1f1f23;
+  --surface-3: #27272a;
+  --surface-hover: #2a2a2e;
 
   --border: rgba(244,240,232,0.12);
   --glass-bg: rgba(16,18,17,0.92);
@@ -23,7 +23,7 @@
   --blue: #9fcdf5;
   --blue-hover: #b3d9f8;
 
-  --gradient: linear-gradient(135deg, #20251f 0%, #171a19 100%);
+  --gradient: #18181b;
   --gradient-subtle: linear-gradient(135deg, rgba(244,240,232,0.035), rgba(215,169,88,0.045));
 
   --danger: #ff7b7b;
@@ -45,7 +45,7 @@
 
     .app { width: min(1400px, calc(100vw - 32px)); margin: 20px auto 40px; display: grid; gap: 18px; }
 .card, .stat, .account-card, .record-row {
-  background: linear-gradient(180deg, #20251f 0%, #171a19 100%);
+  background: #18181b;
   border: 1px solid rgba(244,240,232,0.12);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
@@ -74,7 +74,7 @@
     .subtitle { color: var(--text-secondary); max-width: 740px; line-height:1.6; }
 
     .dashboard-summary { display:grid; grid-template-columns: repeat(4, minmax(120px,1fr)); gap:10px; width:min(650px,100%); }
-    .dashboard-mini-card { border:1px solid rgba(36,227,132,.18); background:rgba(36,227,132,.08); border-radius:16px; padding:12px; }
+    .dashboard-mini-card { border:1px solid var(--border); background:var(--surface-2); border-radius:16px; padding:12px; }
     .dashboard-mini-label { color:var(--text-secondary); font-size:.75rem; margin-bottom:6px; }
     .dashboard-mini-value { color:var(--accent); font-size:clamp(1rem,1.7vw,1.35rem); font-weight:800; letter-spacing:-.03em; }
 
@@ -341,9 +341,9 @@
   font-weight: 900;
   margin-bottom: 16px;
   padding: 10px 14px;
-  border: 1px solid rgba(36,227,132,.18);
+  border: 1px solid var(--border);
   border-radius: 16px;
-  background: rgba(36,227,132,.08);
+  background: var(--surface-2);
 }
 
 .account-detail-heading .account-dot {
@@ -441,7 +441,7 @@
   width:min(620px,100%);
   max-height:92vh;
   overflow:auto;
-  background: linear-gradient(180deg, #20251f 0%, #171a19 100%);
+  background: #18181b;
   border:1px solid rgba(244,240,232,0.12);
   border-radius:22px;
   box-shadow:var(--shadow);
@@ -462,7 +462,7 @@
     .account-picker-trigger { width:100%; display:flex; align-items:center; gap:10px; min-height:46px; padding:10px 12px; text-align:left; }
     .account-picker-swatch { width:16px; height:16px; border:1px solid rgba(255,255,255,.24); border-radius:50%; flex:0 0 auto; }
     .account-picker-chevron { margin-left:auto; color:var(--text-secondary); font-size:1.1rem; }
-    .account-picker-menu { position:absolute; z-index:20; top:calc(100% + 6px); left:0; right:0; display:none; gap:6px; max-height:220px; overflow:auto; padding:8px; border:1px solid var(--border); border-radius:14px; background:#171a19; box-shadow:var(--shadow); }
+    .account-picker-menu { position:absolute; z-index:20; top:calc(100% + 6px); left:0; right:0; display:none; gap:6px; max-height:220px; overflow:auto; padding:8px; border:1px solid var(--border); border-radius:14px; background:#18181b; box-shadow:var(--shadow); }
     .account-picker.open .account-picker-menu { display:grid; }
     .account-picker-option { display:flex; align-items:center; justify-content:space-between; gap:12px; min-height:42px; border:0; font-weight:900; }
     .account-picker-option small { opacity:.78; font-size:.76rem; text-transform:capitalize; }
@@ -481,7 +481,7 @@
   overflow: auto;
   border-radius: 28px;
   padding: 0;
-  background: linear-gradient(180deg, #20251f 0%, #171a19 100%);
+  background: #18181b;
   border: 1px solid rgba(244,240,232,0.12);
   box-shadow: 0 30px 80px rgba(0,0,0,.45);
 }
@@ -530,7 +530,7 @@
 }
 
 .record-left {
-  background: #171a19;
+  background: var(--surface-2);
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -643,7 +643,7 @@
 
 .record-right select option,
 select option {
-  background: #20251f;
+  background: #18181b;
   color: #f4f0e8;
 }
 
