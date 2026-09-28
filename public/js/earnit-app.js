@@ -25,6 +25,7 @@
     const pages = document.querySelectorAll('.page');
     const zoomButtons = document.querySelectorAll('.zoom-btn');
     const rangeSelect = document.getElementById('rangeSelect');
+    const graphIncomeTypeFilter = document.getElementById('graphIncomeTypeFilter');
     const toggleValueLabelsBtn = document.getElementById('toggleValueLabelsBtn');
     const graphStyleSwitchBtn = document.getElementById('graphStyleSwitchBtn');
     const graphModeSwitchBtn = document.getElementById('graphModeSwitchBtn');
@@ -149,6 +150,7 @@ const insightJobPerformance = document.getElementById('insightJobPerformance');
 let zoomMode = uiState.zoomMode || 'month';
 let viewStart = uiState.viewStart || new Date().toISOString().slice(0, 7);
 let graphMode = uiState.graphMode || 'monthly';
+let graphIncomeType = normalizeGraphIncomeTypeFilter(uiState.graphIncomeType);
     let graphStyle = uiState.graphStyle || 'bar';
     let showValueLabels = uiState.showValueLabels ?? true;
     let activePage = uiState.activePage || localStorage.getItem(PAGE_STORAGE_KEY) || 'homePage';
@@ -171,6 +173,7 @@ let graphMode = uiState.graphMode || 'monthly';
       return {
         zoomMode: 'month',
         graphMode: 'entries',
+        graphIncomeType: 'all',
         graphStyle: 'line',
         showValueLabels: false,
         activePage: localStorage.getItem(PAGE_STORAGE_KEY) || 'homePage',
@@ -185,6 +188,7 @@ let graphMode = uiState.graphMode || 'monthly';
   zoomMode: parsed.zoomMode || 'month',
   viewStart: parsed.viewStart || new Date().toISOString().slice(0, 7),
   graphMode: parsed?.graphMode || 'monthly',
+  graphIncomeType: normalizeGraphIncomeTypeFilter(parsed?.graphIncomeType),
   graphStyle: parsed?.graphStyle || 'bar',
   showValueLabels: parsed.showValueLabels ?? true,
   activePage: parsed.activePage || localStorage.getItem(PAGE_STORAGE_KEY) || 'homePage',
@@ -196,6 +200,7 @@ return {
   zoomMode: 'month',
   viewStart: new Date().toISOString().slice(0, 7),
   graphMode: 'monthly',
+  graphIncomeType: 'all',
   graphStyle: 'bar',
   showValueLabels: true,
   activePage: localStorage.getItem(PAGE_STORAGE_KEY) || 'homePage',
@@ -211,6 +216,7 @@ function saveUiState() {
       zoomMode,
       viewStart,
       graphMode,
+      graphIncomeType,
       graphStyle,
       showValueLabels,
       activePage,
@@ -302,6 +308,12 @@ function saveEntries() {
       return Object.prototype.hasOwnProperty.call(INCOME_TYPE_LABELS, value)
         ? value
         : 'salary';
+    }
+
+    function normalizeGraphIncomeTypeFilter(value) {
+      return ['all', 'salary', 'sales', 'project'].includes(value)
+        ? value
+        : 'all';
     }
 
     function getIncomeTypeLabel(value) {
@@ -729,7 +741,12 @@ function formatGraphRangeLabel() {
 }
 
 function getGraphEntries() {
-  const visibleEntries = getVisibleSortedEntries().filter(isEntryInVisibleRange);
+  const visibleEntries = getVisibleSortedEntries()
+    .filter(isEntryInVisibleRange)
+    .filter(entry =>
+      graphIncomeType === 'all' ||
+      normalizeIncomeType(entry.incomeType) === graphIncomeType
+    );
 
   if (graphMode === 'entries') {
     return visibleEntries.map(entry => ({
@@ -1209,7 +1226,13 @@ if (chartYAxisLabels) chartYAxisLabels.innerHTML = '';
   if (!sorted.length) {
     ctx.fillStyle = '#9aa4bf';
     ctx.font = '16px Inter, sans-serif';
-    ctx.fillText('Add your first salary entry to see the graph.', 24, 40);
+    ctx.fillText(
+      graphIncomeType === 'all'
+        ? 'Add your first salary entry to see the graph.'
+        : 'No income entries for this filter.',
+      24,
+      40
+    );
     return { gaps, sorted };
   }
 
@@ -1479,6 +1502,10 @@ function syncZoomButtons() {
 
   if (rangeSelect) {
     rangeSelect.value = zoomMode;
+  }
+
+  if (graphIncomeTypeFilter) {
+    graphIncomeTypeFilter.value = graphIncomeType;
   }
 
   populateGraphMonthDropdown();
@@ -2485,6 +2512,14 @@ rangeSelect?.addEventListener('change', () => {
   saveUiState();
   renderAll();
 });
+
+graphIncomeTypeFilter?.addEventListener('change', () => {
+  graphIncomeType = normalizeGraphIncomeTypeFilter(graphIncomeTypeFilter.value);
+  hoveredPointIndex = -1;
+  hoveredPointMeta = null;
+  saveUiState();
+  renderAll();
+});
 graphDateLabel?.addEventListener('change', () => {
   viewStart = graphDateLabel.value;
   clampViewStart();
@@ -2806,6 +2841,12 @@ window.reloadEarnItFromStorage =
     graphMode =
       nextUiState.graphMode ||
       "monthly";
+
+
+    graphIncomeType =
+      normalizeGraphIncomeTypeFilter(
+        nextUiState.graphIncomeType
+      );
 
 
     graphStyle =
