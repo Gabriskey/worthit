@@ -126,6 +126,7 @@ let isCreatingSpendItAccount = false;
     const companyOriginalNameInput = document.getElementById('companyOriginalName');
     const companyEditNameInput = document.getElementById('companyEditName');
     const companyEditColorInput = document.getElementById('companyEditColor');
+    const companyEditIncomeTypeInput = document.getElementById('companyEditIncomeType');
     const companyEditNotesInput = document.getElementById('companyEditNotes');
     const insightTotalGrowth = document.getElementById('insightTotalGrowth');
 const insightCagrAnnual = document.getElementById('insightCagrAnnual');
@@ -318,6 +319,10 @@ function saveEntries() {
         : 'salary';
     }
 
+    function isIncomeType(value) {
+      return Object.prototype.hasOwnProperty.call(INCOME_TYPE_LABELS, value);
+    }
+
     function normalizeGraphIncomeTypeFilter(value) {
       return ['all', 'salary', 'sales', 'project'].includes(value)
         ? value
@@ -365,20 +370,38 @@ function saveEntries() {
 
       return {
         color: safeColor,
-        notes: String(saved.notes || '').trim()
+        notes: String(saved.notes || '').trim(),
+        incomeType: isIncomeType(saved.incomeType) ? saved.incomeType : ''
       };
     }
 
-    function ensureCompanySetting(job, fallbackColor = '#7c99ff') {
+    function ensureCompanySetting(job, fallbackColor = '#7c99ff', incomeType = '') {
       if (!job) return;
       if (!companySettings[job]) {
         companySettings[job] = {
           color: fallbackColor,
-          notes: ''
+          notes: '',
+          ...(isIncomeType(incomeType) ? { incomeType } : {})
         };
       } else if (!/^#[0-9A-Fa-f]{6}$/.test(companySettings[job].color || '')) {
         companySettings[job].color = fallbackColor;
       }
+    }
+
+    function getCompanyIncomeTypeForEditing(companyName) {
+      const storedIncomeType = getCompanySettings(companyName).incomeType;
+      if (storedIncomeType) return storedIncomeType;
+
+      const linkedIncomeTypes = new Set(
+        entries
+          .map(sanitizeEntry)
+          .filter(entry => entry.job === companyName)
+          .map(entry => normalizeIncomeType(entry.incomeType))
+      );
+
+      return linkedIncomeTypes.size === 1
+        ? [...linkedIncomeTypes][0]
+        : '';
     }
 
     function formatPeso(value) {
@@ -401,6 +424,23 @@ function saveEntries() {
     day: 'numeric',
     year: 'numeric'
   }).format(date);
+}
+
+    function formatEntryDateTime(entry) {
+  const date = formatFullDate(entry.date);
+  const paidTime = String(entry.paidTime || '').trim();
+
+  if (!/^\d{2}:\d{2}$/.test(paidTime)) return date;
+
+  const dateTime = new Date(`${entry.date}T${paidTime}:00`);
+  if (Number.isNaN(dateTime.getTime())) return date;
+
+  const time = new Intl.DateTimeFormat('en-US', {
+    hour: 'numeric',
+    minute: '2-digit'
+  }).format(dateTime);
+
+  return `${date} at ${time}`;
 }
 
 function hexToRgb(hex) {
@@ -1672,7 +1712,7 @@ window.saveEarnItKeyToCloud?.(
             <strong>${escapeHtml(entry.job)}</strong>
             <div class="entry-meta">
               <span>${escapeHtml(getIncomeTypeLabel(entry.incomeType))}</span>
-              <span>${escapeHtml(formatMonthYear(entry.date))}</span>
+              <span>${escapeHtml(formatEntryDateTime(entry))}</span>
               <span>${escapeHtml(formatPeso(entry.salary))}</span>
             </div>
           </div>
@@ -2256,6 +2296,7 @@ function openCompanyModal(encodedCompanyName) {
   companyOriginalNameInput.value = company.name;
   companyEditNameInput.value = company.name;
   companyEditColorInput.value = company.color || '#7c99ff';
+  companyEditIncomeTypeInput.value = getCompanyIncomeTypeForEditing(company.name);
   companyEditNotesInput.value = company.notes || '';
 
   companyModalBackdrop.classList.add('open');
@@ -2268,6 +2309,7 @@ function closeCompanyModal() {
   companyOriginalNameInput.value = '';
   companyEditNameInput.value = '';
   companyEditColorInput.value = '#7c99ff';
+  companyEditIncomeTypeInput.value = '';
   companyEditNotesInput.value = '';
 }
 
@@ -2301,9 +2343,36 @@ async function saveCompanyEdits() {
   const oldName = companyOriginalNameInput.value.trim();
   const newName = companyEditNameInput.value.trim();
   const newColor = companyEditColorInput.value;
+  const newIncomeType = isIncomeType(companyEditIncomeTypeInput.value)
+    ? companyEditIncomeTypeInput.value
+    : '';
   const newNotes = companyEditNotesInput.value.trim();
 
   if (!oldName || !newName) return;
+
+  const oldSettings = getCompanySettings(oldName, newColor);
+  const shouldUpdateEntryColor = newColor !== oldSettings.color;
+
+  const changedIncomeEntries = newIncomeType
+    ? entries
+      .map(sanitizeEntry)
+      .filter(entry =>
+        entry.job === oldName &&
+        entry.incomeType !== newIncomeType
+      )
+    : [];
+
+  if (changedIncomeEntries.length) {
+    const shouldChangeEntries = await window.WorthItModal.confirm(
+      `Change ${changedIncomeEntries.length} existing entr${changedIncomeEntries.length === 1 ? 'y' : 'ies'} from this source to ${getIncomeTypeLabel(newIncomeType)}?`,
+      {
+        title: 'Change income type?',
+        confirmLabel: 'Change Entries'
+      }
+    );
+
+    if (!shouldChangeEntries) return;
+  }
 
   const renamedEntries = entries
     .map(sanitizeEntry)
@@ -2313,7 +2382,7 @@ async function saveCompanyEdits() {
         entry.spendItRecordId
     );
 
-  if (renamedEntries.length) {
+  if (newName !== oldName && renamedEntries.length) {
     try {
       if (
         typeof window
@@ -2347,20 +2416,25 @@ async function saveCompanyEdits() {
   entries = entries.map(entry => {
     const clean = sanitizeEntry(entry);
 
-    if (clean.job !== oldName) return clean;
+    if (clean.job !== oldName) return entry;
 
     return {
-      ...clean,
-      job: newName,
-      color: newColor
+      ...entry,
+      ...(newName !== oldName ? { job: newName } : {}),
+      ...(shouldUpdateEntryColor ? { color: newColor } : {}),
+      ...(newIncomeType && clean.incomeType !== newIncomeType
+        ? { incomeType: newIncomeType }
+        : {})
     };
   });
 
-  const oldSettings = getCompanySettings(oldName, newColor);
   delete companySettings[oldName];
   companySettings[newName] = {
     color: newColor,
-    notes: newNotes || oldSettings.notes || ''
+    notes: newNotes || oldSettings.notes || '',
+    ...(newIncomeType || oldSettings.incomeType
+      ? { incomeType: newIncomeType || oldSettings.incomeType }
+      : {})
   };
 
   if (jobInput.value.trim() === oldName) {
@@ -2433,6 +2507,11 @@ setTimeout(() => {
     jobSelect.addEventListener('change', () => {
   if (jobSelect.value) {
     jobInput.value = jobSelect.value;
+
+    const sourceIncomeType = getCompanySettings(jobSelect.value).incomeType;
+    if (sourceIncomeType) {
+      incomeTypeSelect.value = sourceIncomeType;
+    }
   }
 });
 
@@ -2812,6 +2891,8 @@ spendItRecordId:
 
   if (!newEntry.job || !newEntry.date || newEntry.salary < 0) return;
 
+  const isNewSource = !getSavedCompanies().includes(newEntry.job);
+
   if (currentId) {
     entries = entries.map(entry => entry.id === currentId ? newEntry : entry);
   } else {
@@ -2819,7 +2900,11 @@ spendItRecordId:
   }
 
   if (newEntry.job) {
-  ensureCompanySetting(newEntry.job, newEntry.color);
+  ensureCompanySetting(
+    newEntry.job,
+    newEntry.color,
+    isNewSource ? newEntry.incomeType : ''
+  );
 }
 
 renderAll();

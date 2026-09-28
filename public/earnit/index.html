@@ -96,14 +96,13 @@
 
   <div class="field">
     <label for="paidTimeInput">
-      Time paid
+      Time paid (optional)
     </label>
 
     <input
       id="paidTimeInput"
       name="paidTime"
       type="time"
-      required
     />
   </div>
 
@@ -351,6 +350,16 @@
       <div class="field">
         <label for="companyEditColor">Source color</label>
         <input id="companyEditColor" type="color" value="#7c99ff" />
+      </div>
+
+      <div class="field">
+        <label for="companyEditIncomeType">Income type</label>
+        <select id="companyEditIncomeType">
+          <option value="" disabled>Mixed / not set</option>
+          <option value="salary">Salary / Wage</option>
+          <option value="sales">Sales</option>
+          <option value="project">Project / Gig / Task</option>
+        </select>
       </div>
 
       <div class="field">
