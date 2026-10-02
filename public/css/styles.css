@@ -514,6 +514,68 @@ body {
   font-weight: 700;
 }
 
+.planner-purchase-summary {
+  display: grid;
+  gap: 0.3rem;
+  margin: 1rem 0;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-2);
+}
+
+.planner-purchase-summary span,
+.planner-purchase-description {
+  color: var(--text-secondary);
+}
+
+.planner-purchase-choice-actions,
+.planner-purchase-footer {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.planner-purchase-choice-actions {
+  margin: 1.25rem 0;
+}
+
+.planner-purchase-footer {
+  justify-content: flex-end;
+  margin-top: 1.25rem;
+}
+
+.planner-purchase-record-list {
+  display: grid;
+  gap: 0.65rem;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.planner-purchase-record {
+  display: grid;
+  gap: 0.25rem;
+  width: 100%;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-2);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.planner-purchase-record:hover,
+.planner-purchase-record.selected {
+  border-color: var(--accent);
+  background: var(--surface-3);
+}
+
+.planner-purchase-record span,
+.planner-purchase-record small {
+  color: var(--text-secondary);
+}
+
 .invalid {
   border-color: var(--danger) !important;
   box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.15) !important;

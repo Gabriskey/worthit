@@ -17,6 +17,11 @@ let plannerCalendarMonth = new Date()
 
 let plannerLinkTarget = null
 let editingPayoffId = ""
+let plannerPurchaseTarget = null
+let plannerPurchaseContext = null
+let plannerPurchaseStep = "choice"
+let plannerPurchaseSelectedRecordId = ""
+let plannerPurchaseSubmitting = false
 
 function normalizePlannerLink(value) {
   let link = String(value || "").trim()
@@ -598,19 +603,381 @@ monthChecks.querySelectorAll("input").forEach(c => c.checked = false)
 
   showToast(`Added recurring "${label}"`)
 }
+function escapePlannerPurchaseHtml(value) {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;")
+}
+
+function getPlannerPurchaseTarget() {
+  if (!plannerPurchaseTarget) return null
+
+  const data = loadData()
+  const entries = data[plannerPurchaseTarget.month]
+
+  if (!Array.isArray(entries)) return null
+
+  const index = plannerPurchaseTarget.itemId
+    ? entries.findIndex(item => String(item?.id) === plannerPurchaseTarget.itemId)
+    : plannerPurchaseTarget.index
+  const item = entries[index]
+
+  if (!item) return null
+
+  return {
+    data,
+    month: plannerPurchaseTarget.month,
+    index,
+    item
+  }
+}
+
+function plannerPurchaseSummary(item, month) {
+  const due = item.date ? formatPlannerDueDate(item.date) : month
+
+  return `
+    <div class="planner-purchase-summary">
+      <strong>${escapePlannerPurchaseHtml(item.label || "Planner item")}</strong>
+      <span>Planned: ${formatCurrency(Number(item.amount || 0))}</span>
+      <span>${escapePlannerPurchaseHtml(due)}</span>
+    </div>
+  `
+}
+
+function closePlannerPurchaseModal(force = false) {
+  if (plannerPurchaseSubmitting && !force) return
+
+  const modal = document.getElementById("plannerPurchaseModal")
+  if (modal) modal.style.display = "none"
+
+  plannerPurchaseTarget = null
+  plannerPurchaseContext = null
+  plannerPurchaseStep = "choice"
+  plannerPurchaseSelectedRecordId = ""
+  plannerPurchaseSubmitting = false
+}
+
+function setPlannerPurchaseSubmitting(isSubmitting) {
+  plannerPurchaseSubmitting = isSubmitting
+
+  document
+    .querySelectorAll("#plannerPurchaseModal button")
+    .forEach(button => {
+      button.disabled = isSubmitting
+    })
+}
+
+function renderPlannerPurchaseModal() {
+  const modal = document.getElementById("plannerPurchaseModal")
+  const content = document.getElementById("plannerPurchaseModalContent")
+  const target = getPlannerPurchaseTarget()
+
+  if (!modal || !content || !target) {
+    closePlannerPurchaseModal()
+    return
+  }
+
+  const { item, month } = target
+  const summary = plannerPurchaseSummary(item, month)
+
+  if (plannerPurchaseStep === "choice") {
+    content.innerHTML = `
+      <h3>Complete Purchase</h3>
+      ${summary}
+      <p class="planner-purchase-description">Choose how to record this completed purchase.</p>
+      <div class="planner-purchase-choice-actions">
+        <button class="btn btn-primary" type="button" onclick="openPlannerPurchaseAddToSpending()">Add to Spending</button>
+        <button class="btn btn-secondary" type="button" onclick="openPlannerPurchaseLinkExisting()">Link Existing Spending</button>
+      </div>
+      <div class="planner-purchase-footer">
+        <button class="btn btn-secondary" type="button" onclick="closePlannerPurchaseModal()">Cancel</button>
+      </div>
+    `
+    return
+  }
+
+  if (plannerPurchaseStep === "loading") {
+    content.innerHTML = `
+      <h3>Complete Purchase</h3>
+      ${summary}
+      <p class="planner-purchase-description">Loading current Spending data...</p>
+      <div class="planner-purchase-footer">
+        <button class="btn btn-secondary" type="button" onclick="closePlannerPurchaseModal()">Cancel</button>
+      </div>
+    `
+    return
+  }
+
+  if (plannerPurchaseStep === "add") {
+    const accounts = plannerPurchaseContext?.accounts || []
+    const categories = window.WorthItSpendItCategories || []
+
+    if (!accounts.length) {
+      content.innerHTML = `
+        <h3>Add to Spending</h3>
+        ${summary}
+        <p class="planner-purchase-description">Create a Spending account first, then return here to complete this purchase.</p>
+        <div class="planner-purchase-footer">
+          <button class="btn btn-secondary" type="button" onclick="openPlannerPurchaseChoice()">Back</button>
+          <button class="btn btn-secondary" type="button" onclick="closePlannerPurchaseModal()">Cancel</button>
+        </div>
+      `
+      return
+    }
+
+    content.innerHTML = `
+      <h3>Add to Spending</h3>
+      ${summary}
+      <div class="form-group">
+        <label class="payoff-form-label" for="plannerPurchaseAccount">Account</label>
+        <select id="plannerPurchaseAccount">
+          ${accounts.map(account => `<option value="${escapePlannerPurchaseHtml(account.id)}">${escapePlannerPurchaseHtml(account.name || "Account")} &middot; ${escapePlannerPurchaseHtml(account.type || "")}</option>`).join("")}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="payoff-form-label" for="plannerPurchaseName">Name</label>
+        <input id="plannerPurchaseName" value="${escapePlannerPurchaseHtml(item.label || "")}">
+      </div>
+      <div class="form-group">
+        <label class="payoff-form-label" for="plannerPurchaseAmount">Amount</label>
+        <input id="plannerPurchaseAmount" type="number" min="0.01" step="0.01" value="${Number(item.amount || 0)}">
+      </div>
+      <div class="form-group">
+        <label class="payoff-form-label" for="plannerPurchaseDate">Date</label>
+        <input id="plannerPurchaseDate" type="date" value="${toDateInputValue(new Date())}">
+      </div>
+      <div class="form-group">
+        <label class="payoff-form-label" for="plannerPurchaseTime">Time</label>
+        <input id="plannerPurchaseTime" type="time" value="${String(new Date().getHours()).padStart(2, "0")}:${String(new Date().getMinutes()).padStart(2, "0")}">
+      </div>
+      <div class="form-group">
+        <label class="payoff-form-label" for="plannerPurchaseCategory">Category</label>
+        <select id="plannerPurchaseCategory" onchange="updatePlannerPurchaseSubcategories()">
+          <option value="">Choose a category</option>
+          ${categories.filter(category => category.name !== "Income").map(category => `<option value="${escapePlannerPurchaseHtml(category.name)}">${escapePlannerPurchaseHtml(category.name)}</option>`).join("")}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="payoff-form-label" for="plannerPurchaseSubcategory">Subcategory</label>
+        <select id="plannerPurchaseSubcategory" disabled>
+          <option value="">Choose a category first</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="payoff-form-label" for="plannerPurchaseNotes">Notes</label>
+        <input id="plannerPurchaseNotes" placeholder="Optional notes">
+      </div>
+      <div class="planner-purchase-footer">
+        <button class="btn btn-secondary" type="button" onclick="openPlannerPurchaseChoice()">Back</button>
+        <button class="btn btn-secondary" type="button" onclick="closePlannerPurchaseModal()">Cancel</button>
+        <button id="plannerPurchaseSubmit" class="btn btn-primary" type="button" onclick="savePlannerPurchaseExpense()">Add Expense & Complete Purchase</button>
+      </div>
+    `
+    return
+  }
+
+  const expenses = plannerPurchaseContext?.eligibleExpenses || []
+  const accountsById = new Map(
+    (plannerPurchaseContext?.accounts || []).map(account => [String(account.id), account])
+  )
+
+  content.innerHTML = `
+    <h3>Link Existing Spending</h3>
+    ${summary}
+    <p class="planner-purchase-description">Choose one existing normal expense. Its amount will not be changed.</p>
+    <div class="planner-purchase-record-list">
+      ${expenses.length ? expenses.map(record => {
+        const account = accountsById.get(String(record.accountId || ""))
+        const selected = String(record.id) === plannerPurchaseSelectedRecordId
+        const detail = [record.category, record.subcategory].filter(Boolean).join(" / ")
+
+        return `
+          <button class="planner-purchase-record${selected ? " selected" : ""}" type="button" onclick="selectPlannerPurchaseExpense('${escapePlannerPurchaseHtml(record.id)}')">
+            <span>${escapePlannerPurchaseHtml(formatPlannerDueDate(record.date))} &middot; ${escapePlannerPurchaseHtml(account?.name || "Unavailable account")}</span>
+            <strong>${escapePlannerPurchaseHtml(record.description || record.category || "Expense")} &middot; ${formatCurrency(Number(record.amount || 0))}</strong>
+            <small>${escapePlannerPurchaseHtml(detail)}</small>
+          </button>
+        `
+      }).join("") : `<div class="wishlist-table-empty">No eligible Spending expenses are available.</div>`}
+    </div>
+    <div class="planner-purchase-footer">
+      <button class="btn btn-secondary" type="button" onclick="openPlannerPurchaseChoice()">Back</button>
+      <button class="btn btn-secondary" type="button" onclick="closePlannerPurchaseModal()">Cancel</button>
+      <button id="plannerPurchaseLinkSubmit" class="btn btn-primary" type="button" onclick="linkExistingPlannerPurchaseExpense()" ${plannerPurchaseSelectedRecordId ? "" : "disabled"}>Link & Complete Purchase</button>
+    </div>
+  `
+}
+
+function openPlannerPurchaseChoice() {
+  if (plannerPurchaseSubmitting) return
+
+  plannerPurchaseStep = "choice"
+  plannerPurchaseContext = null
+  plannerPurchaseSelectedRecordId = ""
+  renderPlannerPurchaseModal()
+}
+
+async function loadPlannerPurchaseContext(step) {
+  if (!window.PlannerSpendItPurchase) {
+    await window.WorthItModal.notice("The Spending purchase service is still loading. Please try again.")
+    return
+  }
+
+  plannerPurchaseStep = "loading"
+  renderPlannerPurchaseModal()
+
+  try {
+    plannerPurchaseContext = await window.PlannerSpendItPurchase.loadSpendItPurchaseContext()
+    plannerPurchaseStep = step
+    renderPlannerPurchaseModal()
+  } catch (error) {
+    plannerPurchaseStep = "choice"
+    renderPlannerPurchaseModal()
+    await window.WorthItModal.notice(error.message || "Could not load current Spending data.")
+  }
+}
+
+function openPlannerPurchaseAddToSpending() {
+  if (plannerPurchaseSubmitting) return
+
+  void loadPlannerPurchaseContext("add")
+}
+
+function openPlannerPurchaseLinkExisting() {
+  if (plannerPurchaseSubmitting) return
+
+  void loadPlannerPurchaseContext("link")
+}
+
+function updatePlannerPurchaseSubcategories() {
+  const categoryInput = document.getElementById("plannerPurchaseCategory")
+  const subcategoryInput = document.getElementById("plannerPurchaseSubcategory")
+  const category = (window.WorthItSpendItCategories || []).find(
+    item => item.name === categoryInput?.value
+  )
+
+  if (!subcategoryInput) return
+
+  if (!category) {
+    subcategoryInput.disabled = true
+    subcategoryInput.innerHTML = `<option value="">Choose a category first</option>`
+    return
+  }
+
+  subcategoryInput.disabled = false
+  subcategoryInput.innerHTML = `
+    <option value="">No subcategory</option>
+    ${category.subs.map(subcategory => `<option value="${escapePlannerPurchaseHtml(subcategory)}">${escapePlannerPurchaseHtml(subcategory)}</option>`).join("")}
+  `
+}
+
+async function savePlannerPurchaseExpense() {
+  if (plannerPurchaseSubmitting) return
+
+  const target = getPlannerPurchaseTarget()
+  if (!target) {
+    await window.WorthItModal.notice("This Planner item is no longer available.")
+    closePlannerPurchaseModal()
+    return
+  }
+
+  const submitButton = document.getElementById("plannerPurchaseSubmit")
+  const input = {
+    accountId: document.getElementById("plannerPurchaseAccount")?.value,
+    description: document.getElementById("plannerPurchaseName")?.value,
+    amount: document.getElementById("plannerPurchaseAmount")?.value,
+    date: document.getElementById("plannerPurchaseDate")?.value,
+    time: document.getElementById("plannerPurchaseTime")?.value,
+    category: document.getElementById("plannerPurchaseCategory")?.value,
+    subcategory: document.getElementById("plannerPurchaseSubcategory")?.value,
+    notes: document.getElementById("plannerPurchaseNotes")?.value
+  }
+
+  setPlannerPurchaseSubmitting(true)
+  if (submitButton) {
+    submitButton.textContent = "Adding..."
+  }
+
+  try {
+    const result = await window.PlannerSpendItPurchase.createPlannerPurchaseExpense(input)
+    finalizePlannerPurchase(result.recordId, "created")
+  } catch (error) {
+    await window.WorthItModal.notice(error.message || "Could not add the Spending expense. The Planner item is unchanged.")
+    setPlannerPurchaseSubmitting(false)
+    renderPlannerPurchaseModal()
+  }
+}
+
+function selectPlannerPurchaseExpense(recordId) {
+  if (plannerPurchaseSubmitting) return
+
+  plannerPurchaseSelectedRecordId = String(recordId || "")
+  renderPlannerPurchaseModal()
+}
+
+async function linkExistingPlannerPurchaseExpense() {
+  if (plannerPurchaseSubmitting || !plannerPurchaseSelectedRecordId) return
+
+  const submitButton = document.getElementById("plannerPurchaseLinkSubmit")
+  setPlannerPurchaseSubmitting(true)
+  if (submitButton) {
+    submitButton.textContent = "Linking..."
+  }
+
+  try {
+    const record = await window.PlannerSpendItPurchase.verifySpendItPurchaseExpense(
+      plannerPurchaseSelectedRecordId
+    )
+    finalizePlannerPurchase(record.id, "existing")
+  } catch (error) {
+    await window.WorthItModal.notice(error.message || "Could not link this Spending expense. The Planner item is unchanged.")
+    setPlannerPurchaseSubmitting(false)
+    renderPlannerPurchaseModal()
+  }
+}
+
 function markPlannerPurchased(m, i) {
   const data = loadData()
   const item = data[m] && data[m][i]
   if (!item) return
 
+  plannerPurchaseTarget = {
+    month: m,
+    index: i,
+    itemId: item.id ? String(item.id) : ""
+  }
+  plannerPurchaseStep = "choice"
+  plannerPurchaseContext = null
+  plannerPurchaseSelectedRecordId = ""
+
+  const modal = document.getElementById("plannerPurchaseModal")
+  if (modal) modal.style.display = "flex"
+  renderPlannerPurchaseModal()
+}
+
+function finalizePlannerPurchase(spendItRecordId, spendingLinkMode) {
+  const target = getPlannerPurchaseTarget()
+  if (!target) {
+    void window.WorthItModal.notice("This Planner item is no longer available.")
+    closePlannerPurchaseModal(true)
+    return
+  }
+
+  const { data, month, index, item } = target
+
   addPurchasedItem({
-    id: item.wishlistId || item.id || `${m}_${i}_${Date.now()}`,
+    id: item.wishlistId || item.id || `${month}_${index}_${Date.now()}`,
     wishlistId: item.wishlistId || "",
     plannerEntryId: item.id || "",
     name: item.label,
     price: item.amount,
     source: "planner",
-    purchasedAt: new Date().toISOString()
+    purchasedAt: new Date().toISOString(),
+    spendItRecordId,
+    spendingLinkMode
   })
 
   if (item.wishlistId) {
@@ -623,14 +990,14 @@ function markPlannerPurchased(m, i) {
       wishlistItem.plannedMonth = ""
       wishlistItem.plannedDate = ""
       wishlistItem.plannerEntryId = ""
-      saveWishlistItemsRaw(
-  wishlistItems
-)
+      saveWishlistItemsRaw(wishlistItems)
     }
   }
 
-  data[m].splice(i, 1)
+  data[month].splice(index, 1)
   saveData(data)
+  plannerPurchaseSubmitting = false
+  closePlannerPurchaseModal()
   render()
   renderPlannerPurchasedItems()
   showToast(`Marked "${item.label || "item"}" as purchased`)

@@ -45,7 +45,9 @@ function addPurchasedItem(item = {}) {
     name: item.name || item.label || "Purchased Item",
     price: Number(item.price || item.amount || 0),
     source: item.source || "planner",
-    purchasedAt: item.purchasedAt || new Date().toISOString()
+    purchasedAt: item.purchasedAt || new Date().toISOString(),
+    spendItRecordId: item.spendItRecordId || "",
+    spendingLinkMode: item.spendingLinkMode || ""
   }
 
   if (existingIndex >= 0) {
