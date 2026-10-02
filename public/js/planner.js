@@ -22,6 +22,9 @@ let plannerPurchaseContext = null
 let plannerPurchaseStep = "choice"
 let plannerPurchaseSelectedRecordId = ""
 let plannerPurchaseSubmitting = false
+let plannerPurchasedSpendItContext = null
+let plannerPurchasedSpendItLookupFailed = false
+let plannerPurchasedSpendItLookupInFlight = false
 
 function normalizePlannerLink(value) {
   let link = String(value || "").trim()
@@ -996,11 +999,100 @@ function finalizePlannerPurchase(spendItRecordId, spendingLinkMode) {
 
   data[month].splice(index, 1)
   saveData(data)
+  plannerPurchasedSpendItContext = null
+  plannerPurchasedSpendItLookupFailed = false
   plannerPurchaseSubmitting = false
   closePlannerPurchaseModal()
   render()
   renderPlannerPurchasedItems()
   showToast(`Marked "${item.label || "item"}" as purchased`)
+}
+
+function loadPlannerPurchasedSpendItContext(items) {
+  const hasLinkedItems = items.some(item => item.spendItRecordId)
+
+  if (
+    !hasLinkedItems ||
+    plannerPurchasedSpendItContext ||
+    plannerPurchasedSpendItLookupFailed ||
+    plannerPurchasedSpendItLookupInFlight ||
+    !window.PlannerSpendItPurchase
+  ) return
+
+  plannerPurchasedSpendItLookupInFlight = true
+
+  void window.PlannerSpendItPurchase
+    .loadSpendItPurchaseContext()
+    .then(context => {
+      plannerPurchasedSpendItContext = context
+    })
+    .catch(error => {
+      console.warn("Could not load Spending details for purchased items:", error)
+      plannerPurchasedSpendItLookupFailed = true
+    })
+    .finally(() => {
+      plannerPurchasedSpendItLookupInFlight = false
+      renderPlannerPurchasedItems()
+    })
+}
+
+function renderPlannerPurchasedSpendItDetails(item, recordsById, accountsById) {
+  if (!item.spendItRecordId) return ""
+
+  if (!plannerPurchasedSpendItContext) {
+    const message = plannerPurchasedSpendItLookupInFlight
+      ? "Loading Spending details..."
+      : "Spending details unavailable"
+
+    return `
+      <div class="planner-purchased-spending-link">
+        <span class="planner-purchased-spending-label">Linked to Spending</span>
+        <small>${message}</small>
+      </div>
+    `
+  }
+
+  const record = recordsById.get(String(item.spendItRecordId))
+
+  if (!record) {
+    return `
+      <div class="planner-purchased-spending-link">
+        <span class="planner-purchased-spending-label">Linked to Spending</span>
+        <small>Linked Spending entry was removed</small>
+      </div>
+    `
+  }
+
+  const account = accountsById.get(String(record.accountId || ""))
+  const plannedAmount = Number(item.price || 0)
+  const actualAmount = Number(record.amount || 0)
+  const actualLabel = actualAmount === plannedAmount
+    ? ""
+    : `Actual: ${formatCurrency(actualAmount)}`
+  const details = [record.category, record.subcategory]
+    .filter(Boolean)
+    .map(escapePlannerPurchaseHtml)
+    .join(" / ")
+  const linkLabel = item.spendingLinkMode === "created"
+    ? "Added to Spending"
+    : item.spendingLinkMode === "existing"
+      ? "Linked to existing Spending entry"
+      : "Linked to Spending"
+  const accountName = escapePlannerPurchaseHtml(account?.name || "Account unavailable")
+  const date = record.date
+    ? formatPlannerDueDate(record.date)
+    : "Date unavailable"
+  const spendingSummary = [accountName, actualLabel, date]
+    .filter(Boolean)
+    .join(" &middot; ")
+
+  return `
+    <div class="planner-purchased-spending-link">
+      <span class="planner-purchased-spending-label">${linkLabel}</span>
+      <span>${spendingSummary}</span>
+      ${details ? `<small>${details}</small>` : ""}
+    </div>
+  `
 }
 
 function renderPlannerPurchasedItems() {
@@ -1014,18 +1106,43 @@ function renderPlannerPurchasedItems() {
     return
   }
 
-  list.innerHTML = items.map(item => `
-    <div class="purchased-wishlist-item">
-      <div>
-        <strong>${item.name || "Purchased Item"}</strong>
-        <span>${formatCurrency(item.price)}</span>
-      </div>
+  loadPlannerPurchasedSpendItContext(items)
 
-      <button class="wishlist-owned-btn" type="button" onclick="removePurchasedItemFromPlanner('${item.id}')">
-        Remove
-      </button>
-    </div>
-  `).join("")
+  const recordsById = new Map(
+    (plannerPurchasedSpendItContext?.records || [])
+      .map(record => [String(record?.id || ""), record])
+      .filter(([id]) => id)
+  )
+  const accountsById = new Map(
+    (plannerPurchasedSpendItContext?.accounts || [])
+      .map(account => [String(account?.id || ""), account])
+      .filter(([id]) => id)
+  )
+
+  list.innerHTML = items.map(item => {
+    const linkedRecord = recordsById.get(String(item.spendItRecordId || ""))
+    const amountsMatch = linkedRecord &&
+      Number(linkedRecord.amount || 0) === Number(item.price || 0)
+    const plannedAmount = item.spendItRecordId
+      ? amountsMatch
+        ? `Planned / actual: ${formatCurrency(item.price)}`
+        : `Planned: ${formatCurrency(item.price)}`
+      : formatCurrency(item.price)
+
+    return `
+      <div class="purchased-wishlist-item">
+        <div>
+          <strong>${item.name || "Purchased Item"}</strong>
+          <span>${plannedAmount}</span>
+          ${renderPlannerPurchasedSpendItDetails(item, recordsById, accountsById)}
+        </div>
+
+        <button class="wishlist-owned-btn" type="button" onclick="removePurchasedItemFromPlanner('${item.id}')">
+          Remove
+        </button>
+      </div>
+    `
+  }).join("")
 }
 
 function removePurchasedItemFromPlanner(id) {
@@ -1346,10 +1463,18 @@ function initPlannerPage() {
     })
   }
 
+  plannerPurchasedSpendItContext = null
+  plannerPurchasedSpendItLookupFailed = false
   render()
   renderPayoffTracker()
   renderPlannerPurchasedItems()
 }
+
+window.addEventListener("planner-spendit-purchase-ready", () => {
+  plannerPurchasedSpendItContext = null
+  plannerPurchasedSpendItLookupFailed = false
+  renderPlannerPurchasedItems()
+})
 
 initPlannerPage()
 

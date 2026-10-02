@@ -106,6 +106,7 @@ async function loadSpendItPurchaseContext() {
 
   return {
     accounts,
+    records,
     eligibleExpenses: getEligibleExpenses(records, linkedRecordIds)
   }
 }
@@ -263,3 +264,5 @@ window.PlannerSpendItPurchase = {
   createPlannerPurchaseExpense,
   verifySpendItPurchaseExpense
 }
+
+window.dispatchEvent(new Event("planner-spendit-purchase-ready"))

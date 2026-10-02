@@ -2919,6 +2919,34 @@ select,
   font-weight: 800;
 }
 
+.planner-purchased-spending-link {
+  display: grid;
+  gap: 0.2rem;
+  margin-top: 0.6rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+}
+
+.purchased-wishlist-item .planner-purchased-spending-label {
+  color: var(--text-tertiary);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.purchased-wishlist-item .planner-purchased-spending-link span,
+.planner-purchased-spending-link small {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.planner-purchased-spending-link small {
+  color: var(--text-tertiary);
+}
+
 .wishlist-month-option.is-disabled,
 .wishlist-month-option:disabled {
   opacity: 0.35;
