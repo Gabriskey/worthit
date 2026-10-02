@@ -238,6 +238,40 @@ function saveRecords(){
   );
 }
 
+function getLinkedTransferFee(transfer){
+  if (!transfer?.transferFeeRecordId) return null;
+
+  return records.find(record =>
+    record.id === transfer.transferFeeRecordId &&
+    record.source === 'transfer-fee' &&
+    record.transferRecordId === transfer.id
+  ) || null;
+}
+
+function transferFeeDescription(fromId, toId){
+  const fromName = accounts.find(account => account.id === fromId)?.name || 'Account';
+  const toName = accounts.find(account => account.id === toId)?.name || 'Account';
+  return `Transfer fee: ${fromName} to ${toName}`;
+}
+
+function readTransferFee(){
+  const raw = document.getElementById('recordTransferFee')?.value.trim() || '';
+  if (!raw) return 0;
+
+  const fee = Number(raw);
+  if (!Number.isFinite(fee)) {
+    window.WorthItModal.notice('Enter a valid transfer fee.');
+    return null;
+  }
+
+  if (fee < 0) {
+    window.WorthItModal.notice('Transfer fee cannot be negative.');
+    return null;
+  }
+
+  return fee;
+}
+
 function loadUi(){ try { return JSON.parse(localStorage.getItem(UI_KEY) || '{}'); } catch { return {}; } }
 
 function saveUi(){
@@ -2265,44 +2299,47 @@ function closeAccountPickers(exceptId = ''){
   });
 }
 
-function renderAccountPicker(pickerId, selectId){
+function renderAccountPicker(pickerId, selectId, options = {}){
   const picker = document.getElementById(pickerId);
   const select = document.getElementById(selectId);
 
   if (!picker || !select) return;
 
-  const selected = accounts.find(account => account.id === select.value) || accounts[0];
+  const availableAccounts = accounts.filter(account => account.id !== options.excludeAccountId);
+  const selected = availableAccounts.find(account => account.id === select.value) || (options.allowEmpty ? null : availableAccounts[0]);
 
   if (!selected) {
-    picker.innerHTML = '<div class="account-picker-empty">No accounts available.</div>';
-    return;
+    select.value = '';
+  } else {
+    select.value = selected.id;
   }
 
-  select.value = selected.id;
-  const selectedColor = accountColor(selected);
+  const selectedMarkup = selected
+    ? `<span class="account-picker-swatch" style="background:${accountColor(selected)}"></span>
+      <span>${escapeHtml(selected.name)} · ${escapeHtml(selected.type)}</span>`
+    : `<span class="account-picker-placeholder">${escapeHtml(options.placeholder || 'Select account')}</span>`;
 
   picker.innerHTML = `
-    <button class="account-picker-trigger" type="button" aria-expanded="false">
-      <span class="account-picker-swatch" style="background:${selectedColor}"></span>
-      <span>${escapeHtml(selected.name)} · ${escapeHtml(selected.type)}</span>
+    <button class="account-picker-trigger" type="button" aria-expanded="false"${availableAccounts.length ? '' : ' disabled'}>
+      ${selectedMarkup}
       <span class="account-picker-chevron" aria-hidden="true">⌄</span>
     </button>
     <div class="account-picker-menu" role="listbox" aria-label="Choose account">
-      ${accounts.map(account => {
+      ${availableAccounts.length ? availableAccounts.map(account => {
         const color = accountColor(account);
         const textColor = accountOptionTextColor(color);
-        const selectedClass = account.id === selected.id ? ' selected' : '';
+        const selectedClass = account.id === selected?.id ? ' selected' : '';
 
-        return `<button class="account-picker-option${selectedClass}" type="button" role="option" aria-selected="${account.id === selected.id}" data-account-id="${escapeHtml(account.id)}" style="background:${color};color:${textColor}">
+        return `<button class="account-picker-option${selectedClass}" type="button" role="option" aria-selected="${account.id === selected?.id}" data-account-id="${escapeHtml(account.id)}" style="background:${color};color:${textColor}">
           <span>${escapeHtml(account.name)}</span>
           <small>${escapeHtml(account.type)}</small>
         </button>`;
-      }).join('')}
+      }).join('') : `<div class="account-picker-empty">${escapeHtml(options.emptyMessage || 'No accounts available.')}</div>`}
     </div>
   `;
 
   const trigger = picker.querySelector('.account-picker-trigger');
-  trigger.addEventListener('click', () => {
+  trigger?.addEventListener('click', () => {
     const willOpen = !picker.classList.contains('open');
     closeAccountPickers(pickerId);
     picker.classList.toggle('open', willOpen);
@@ -2313,8 +2350,42 @@ function renderAccountPicker(pickerId, selectId){
     option.addEventListener('click', () => {
       select.value = option.dataset.accountId;
       picker.classList.remove('open');
-      renderAccountPicker(pickerId, selectId);
+      if (options.onSelect) {
+        options.onSelect(option.dataset.accountId);
+      } else {
+        renderAccountPicker(pickerId, selectId, options);
+      }
     });
+  });
+}
+
+function renderTransferAccountPickers(){
+  const fromSelect = document.getElementById('recordFromAccount');
+  const toSelect = document.getElementById('recordToAccount');
+  if (!fromSelect || !toSelect) return;
+
+  const fromAccount = accounts.find(account => account.id === fromSelect.value) || accounts[0];
+  fromSelect.value = fromAccount?.id || '';
+
+  if (toSelect.value === fromSelect.value) {
+    toSelect.value = '';
+  }
+
+  renderAccountPicker('recordFromAccountPicker', 'recordFromAccount', {
+    onSelect: () => {
+      if (toSelect.value === fromSelect.value) {
+        toSelect.value = '';
+      }
+      renderTransferAccountPickers();
+    }
+  });
+
+  renderAccountPicker('recordToAccountPicker', 'recordToAccount', {
+    allowEmpty: true,
+    excludeAccountId: fromSelect.value,
+    placeholder: 'Select destination account',
+    emptyMessage: 'Add another account to transfer money.',
+    onSelect: () => renderTransferAccountPickers()
   });
 }
 
@@ -2323,18 +2394,22 @@ function populateAccountSelects(){
     .map(a => `<option value="${a.id}">${escapeHtml(a.name)} · ${escapeHtml(a.type)}</option>`)
     .join('');
 
-  ['recordAccount','recordFromAccount','recordToAccount'].forEach(id => {
+  ['recordAccount','recordFromAccount'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.innerHTML = accountOptions;
   });
+
+  const toSelect = document.getElementById('recordToAccount');
+  if (toSelect) {
+    toSelect.innerHTML = `<option value="">Select destination account</option>${accountOptions}`;
+  }
 
   if (selectedAccountId && document.getElementById('recordAccount')) {
     document.getElementById('recordAccount').value = selectedAccountId;
   }
 
   renderAccountPicker('recordAccountPicker', 'recordAccount');
-  renderAccountPicker('recordFromAccountPicker', 'recordFromAccount');
-  renderAccountPicker('recordToAccountPicker', 'recordToAccount');
+  renderTransferAccountPickers();
 }
 
 function findBankPreset(name){
@@ -2583,6 +2658,7 @@ function openRecordModal(){
   recordTime.value = nowTime();
   recordDescription.value = '';
   if (document.getElementById('recordNotes')) recordNotes.value = '';
+  if (document.getElementById('recordTransferFee')) recordTransferFee.value = '';
   document.getElementById('recordModalBackdrop').classList.add('open');
 }
 
@@ -2603,6 +2679,15 @@ if (type === 'income') {
   recordCategory.value = 'Income|';
 updateCategoryPickerButton();
 }
+
+  if (type === 'transfer') {
+    if (!editingRecordId) {
+      recordFromAccount.value = recordAccount.value || selectedAccountId || accounts[0]?.id || '';
+      recordToAccount.value = '';
+      if (document.getElementById('recordTransferFee')) recordTransferFee.value = '';
+    }
+    renderTransferAccountPickers();
+  }
 
   updateAmountPreview();
 }
@@ -2679,47 +2764,106 @@ document.getElementById('recordForm').addEventListener('submit', e => {
     return window.WorthItModal.notice('Enter an amount first.');
   }
 
-let recordData;
+  if (recordType === 'transfer') {
+    const fromId = recordFromAccount.value;
+    const toId = recordToAccount.value;
 
-if (recordType === 'transfer') {
-  if (recordFromAccount.value === recordToAccount.value) {
-    return window.WorthItModal.notice('Choose two different accounts.');
-  }
+    if (!fromId) {
+      return window.WorthItModal.notice('Select a source account.');
+    }
 
-  recordData = {
-    type: 'transfer',
-    amount,
-    fromId: recordFromAccount.value,
-    toId: recordToAccount.value,
-    category: 'Transfer',
-    description: recordDescription.value.trim() || recordNotes.value.trim(),
-    date: recordDate.value,
-    time: recordTime.value
-  };
-} else {
-  recordData = {
-    type: recordType,
-    amount,
-    accountId: recordAccount.value,
-    category: recordCategory.value.split('|')[0],
-    subcategory: recordCategory.value.split('|')[1] || '',
-    description: recordDescription.value.trim() || recordNotes.value.trim(),
-    date: recordDate.value,
-    time: recordTime.value
-  };
-}
+    if (!toId) {
+      return window.WorthItModal.notice('Select destination account.');
+    }
 
-  if (editingRecordId) {
-    records = records.map(r => {
-      if (r.id !== editingRecordId) return r;
-      return { ...r, ...recordData, updatedAt: Date.now() };
-    });
+    if (fromId === toId) {
+      return window.WorthItModal.notice('Choose two different accounts.');
+    }
+
+    const fee = readTransferFee();
+    if (fee === null) return;
+
+    const existingRecord = editingRecordId
+      ? records.find(record => record.id === editingRecordId)
+      : null;
+    const existingTransfer = existingRecord?.type === 'transfer' ? existingRecord : null;
+    const transferId = existingRecord?.id || uid('rec');
+    const existingFee = existingTransfer ? getLinkedTransferFee(existingTransfer) : null;
+    const transferData = {
+      type: 'transfer',
+      amount,
+      fromId,
+      toId,
+      category: 'Transfer',
+      description: recordDescription.value.trim() || recordNotes.value.trim(),
+      date: recordDate.value,
+      time: recordTime.value
+    };
+    const transfer = existingRecord
+      ? { ...existingRecord, ...transferData, updatedAt: Date.now() }
+      : { id: transferId, createdAt: Date.now(), ...transferData };
+
+    if (fee > 0) {
+      const feeId = existingFee?.id || uid('rec');
+      transfer.transferFeeRecordId = feeId;
+
+      const feeData = {
+        type: 'expense',
+        amount: fee,
+        accountId: fromId,
+        category: 'Financial expenses',
+        subcategory: 'Charges, Fees',
+        description: transferFeeDescription(fromId, toId),
+        date: recordDate.value,
+        time: recordTime.value,
+        source: 'transfer-fee',
+        transferRecordId: transferId
+      };
+
+      if (existingFee) {
+        records = records.map(record => {
+          if (record.id === existingTransfer.id) return transfer;
+          if (record.id === existingFee.id) return { ...record, ...feeData, updatedAt: Date.now() };
+          return record;
+        });
+      } else {
+        records = records.filter(record => record.id !== transferId);
+        records.unshift({ id: feeId, createdAt: Date.now(), ...feeData });
+        records.unshift(transfer);
+      }
+    } else {
+      delete transfer.transferFeeRecordId;
+      records = records.filter(record => record.id !== existingFee?.id && record.id !== transferId);
+      records.unshift(transfer);
+    }
   } else {
-records.unshift({
-  id: uid('rec'),
-  createdAt: Date.now(),
-  ...recordData
-});
+    const recordData = {
+      type: recordType,
+      amount,
+      accountId: recordAccount.value,
+      category: recordCategory.value.split('|')[0],
+      subcategory: recordCategory.value.split('|')[1] || '',
+      description: recordDescription.value.trim() || recordNotes.value.trim(),
+      date: recordDate.value,
+      time: recordTime.value
+    };
+
+    if (editingRecordId) {
+      const existingRecord = records.find(record => record.id === editingRecordId);
+      const linkedFee = existingRecord?.type === 'transfer' ? getLinkedTransferFee(existingRecord) : null;
+
+      records = records.filter(record => record.id !== linkedFee?.id).map(record => {
+        if (record.id !== editingRecordId) return record;
+        const { fromId, toId, transferFeeRecordId, ...normalRecord } = record;
+        return { ...normalRecord, ...recordData, updatedAt: Date.now() };
+      });
+    } else {
+      records.unshift({
+        id: uid('rec'),
+        createdAt: Date.now(),
+        ...recordData
+      });
+    }
   }
 
   saveRecords();
@@ -2729,6 +2873,12 @@ records.unshift({
 function editRecord(id){
   const record = records.find(r => r.id === id);
   if (!record || record.type === 'transfer') return;
+
+  if (record.source === 'transfer-fee') {
+    return window.WorthItModal.notice(
+      'This transfer fee is managed by its transfer. Edit the transfer instead.'
+    );
+  }
 
   if (record.source === 'earnit') {
     return window.WorthItModal.notice(
@@ -2759,6 +2909,12 @@ function deleteRecord(id){
   const record = records.find(r => r.id === id);
   if (!record) return;
 
+  if (record.source === 'transfer-fee') {
+    return window.WorthItModal.notice(
+      'This transfer fee is managed by its transfer. Delete the transfer instead.'
+    );
+  }
+
   if (record.source === 'earnit') {
     return window.WorthItModal.notice(
       'This income record is linked to Income. Delete it from Income instead.'
@@ -2769,7 +2925,8 @@ function deleteRecord(id){
     'Delete this record?',
     'This record will be permanently removed.',
     () => {
-      records = records.filter(r => r.id !== id);
+      const linkedFee = record.type === 'transfer' ? getLinkedTransferFee(record) : null;
+      records = records.filter(r => r.id !== id && r.id !== linkedFee?.id);
       saveRecords();
       render();
     }
@@ -2779,6 +2936,7 @@ function deleteRecord(id){
 function editTransfer(id){
   const transfer = records.find(r => r.id === id && r.type === 'transfer');
   if (!transfer) return;
+  const fee = getLinkedTransferFee(transfer);
 
   editingRecordId = id;
   amountBuffer = String(transfer.amount || '');
@@ -2788,8 +2946,8 @@ function editTransfer(id){
 
   document.getElementById('recordFromAccount').value = transfer.fromId;
   document.getElementById('recordToAccount').value = transfer.toId;
-  renderAccountPicker('recordFromAccountPicker', 'recordFromAccount');
-  renderAccountPicker('recordToAccountPicker', 'recordToAccount');
+  renderTransferAccountPickers();
+  document.getElementById('recordTransferFee').value = fee ? String(fee.amount) : '';
   document.getElementById('recordDescription').value = transfer.description || '';
   document.getElementById('recordDate').value = transfer.date || nowDate();
   document.getElementById('recordTime').value = transfer.time || nowTime();
