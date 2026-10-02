@@ -573,6 +573,20 @@
   background: transparent;
   padding: 10px 8px;
   line-height: 1.05;
+}
+
+.calculator-status {
+  display: block;
+  min-height: 1.1em;
+  padding-right: 0.1em;
+  color: rgba(255,255,255,.5);
+  font-size: .28em;
+  font-weight: 600;
+  line-height: 1.1;
+  text-align: right;
+}
+
+.amount-preview-main {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

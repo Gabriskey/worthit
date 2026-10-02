@@ -21,7 +21,11 @@ let ui = loadUi();
 const CATEGORY_PIE_RANGES = new Set(['today', 'yesterday', 'last7', 'last30', 'last90', 'all', 'custom']);
 let selectedAccountId = ui.selectedAccountId || accounts[0]?.id || '';
 let recordType = 'income';
-let amountBuffer = '';
+let calculatorAccumulator = null;
+let calculatorCurrentInput = '';
+let calculatorPendingOperator = '';
+let calculatorWaitingForOperand = false;
+let calculatorJustCalculated = false;
 let currentPageId = ui.currentPageId || 'dashboardPage';
 let editingRecordId = null;
 let selectedBankPresetName = '';
@@ -2553,7 +2557,7 @@ function toggleQuick(force){
 function openRecordModal(){
   editingRecordId = null;
   toggleQuick(false);
-  amountBuffer = '';
+  resetAmountCalculator();
   setRecordType('expense');
   updateAmountPreview();
   recordDate.value = nowDate();
@@ -2594,15 +2598,44 @@ updateCategoryPickerButton();
   updateAmountPreview();
 }
 
-function safeCalculate(expression) {
-  if (!/^[0-9+\-*/.() ]+$/.test(expression)) return 0;
+function resetAmountCalculator(){
+  calculatorAccumulator = null;
+  calculatorCurrentInput = '';
+  calculatorPendingOperator = '';
+  calculatorWaitingForOperand = false;
+  calculatorJustCalculated = false;
+}
 
-  try {
-    const result = Function(`"use strict"; return (${expression})`)();
-    return Number.isFinite(result) ? result : 0;
-  } catch {
-    return 0;
+function setAmountCalculatorValue(value){
+  resetAmountCalculator();
+  calculatorCurrentInput = String(Number(value) || 0);
+}
+
+function formatCalculatorValue(value){
+  if (!Number.isFinite(value)) return '0';
+  return String(Number(value.toFixed(2)));
+}
+
+function calculatePendingOperation(left, operator, right){
+  if (operator === '+') return left + right;
+  if (operator === '-') return left - right;
+  if (operator === '*') return left * right;
+  if (operator === '/') return right === 0 ? 0 : left / right;
+  return right;
+}
+
+function calculatorOperatorSymbol(operator){
+  if (operator === '*') return '×';
+  if (operator === '/') return '÷';
+  return operator;
+}
+
+function currentCalculatorValue(){
+  if (calculatorCurrentInput && calculatorCurrentInput !== '.') {
+    return Number(calculatorCurrentInput);
   }
+
+  return calculatorAccumulator ?? 0;
 }
 
 function updateAmountPreview(){
@@ -2611,14 +2644,37 @@ function updateAmountPreview(){
   if (recordType === 'expense') prefix = '-';
   if (recordType === 'transfer') prefix = '⇄';
 
-  recordAmount.value = amountBuffer || '0';
-  amountPreview.innerHTML = `<span class="amount-prefix">${prefix}</span>${amountBuffer || '0'}`;
+  const currentValue = calculatorCurrentInput || (calculatorWaitingForOperand ? '' : formatCalculatorValue(currentCalculatorValue()));
+  const amountValue = currentValue || formatCalculatorValue(currentCalculatorValue());
+  const status = calculatorPendingOperator && calculatorAccumulator !== null
+    ? `${formatCalculatorValue(calculatorAccumulator)} ${calculatorOperatorSymbol(calculatorPendingOperator)}`
+    : '';
+
+  recordAmount.value = amountValue;
+  amountPreview.innerHTML = `<span class="amount-prefix">${prefix}</span>${currentValue || '0'}`;
+  calculatorStatus.textContent = status;
 }
 
 function calculateAmount(){
-  const result = safeCalculate(amountBuffer);
-  amountBuffer = result ? String(Number(result.toFixed(2))) : '';
-  recordAmount.value = amountBuffer || '0';
+  if (calculatorPendingOperator && calculatorAccumulator !== null) {
+    if (!calculatorWaitingForOperand && calculatorCurrentInput !== '') {
+      calculatorCurrentInput = formatCalculatorValue(
+        calculatePendingOperation(
+          calculatorAccumulator,
+          calculatorPendingOperator,
+          Number(calculatorCurrentInput)
+        )
+      );
+    } else {
+      calculatorCurrentInput = formatCalculatorValue(calculatorAccumulator);
+    }
+
+    calculatorAccumulator = null;
+    calculatorPendingOperator = '';
+    calculatorWaitingForOperand = false;
+  }
+
+  calculatorJustCalculated = true;
   updateAmountPreview();
 }
 
@@ -2631,21 +2687,65 @@ function buildNumpad(){
 
 function pressNum(key){
   if (key === '⌫') {
-    amountBuffer = amountBuffer.slice(0, -1);
-  } else if (key === '.') {
-    const parts = amountBuffer.split(/[+\-*/]/);
-    const currentNumber = parts[parts.length - 1];
-    if (currentNumber.includes('.')) return;
-    amountBuffer += amountBuffer ? '.' : '0.';
+    if (!calculatorWaitingForOperand) {
+      calculatorCurrentInput = calculatorCurrentInput.slice(0, -1);
+    }
+    calculatorJustCalculated = false;
+    updateAmountPreview();
+    return;
+  }
+
+  if (['+', '-', '*', '/'].includes(key)) {
+    if (calculatorWaitingForOperand && calculatorAccumulator !== null) {
+      calculatorPendingOperator = key;
+      updateAmountPreview();
+      return;
+    }
+
+    if (calculatorCurrentInput === '' && calculatorAccumulator === null) {
+      return;
+    }
+
+    const currentValue = currentCalculatorValue();
+
+    if (calculatorPendingOperator && calculatorAccumulator !== null) {
+      calculatorAccumulator = calculatePendingOperation(
+        calculatorAccumulator,
+        calculatorPendingOperator,
+        currentValue
+      );
+    } else {
+      calculatorAccumulator = currentValue;
+    }
+
+    calculatorPendingOperator = key;
+    calculatorCurrentInput = '';
+    calculatorWaitingForOperand = true;
+    calculatorJustCalculated = false;
+    updateAmountPreview();
+    return;
+  }
+
+  if (calculatorWaitingForOperand || calculatorJustCalculated) {
+    calculatorCurrentInput = '';
+    calculatorWaitingForOperand = false;
+    calculatorJustCalculated = false;
+  }
+
+  if (key === '.') {
+    if (calculatorCurrentInput.includes('.')) return;
+    calculatorCurrentInput += calculatorCurrentInput ? '.' : '0.';
+  } else if (calculatorCurrentInput === '0') {
+    calculatorCurrentInput = key;
   } else {
-    amountBuffer += key;
+    calculatorCurrentInput += key;
   }
 
   updateAmountPreview();
 }
 
 function clearNum(){
-  amountBuffer = '';
+  resetAmountCalculator();
   updateAmountPreview();
 }
 
@@ -2789,7 +2889,7 @@ function editRecord(id){
   }
 
   editingRecordId = id;
-  amountBuffer = String(record.amount || '');
+  setAmountCalculatorValue(record.amount);
 
   setRecordType(record.type);
   updateAmountPreview();
@@ -2841,7 +2941,7 @@ function editTransfer(id){
   const fee = getLinkedTransferFee(transfer);
 
   editingRecordId = id;
-  amountBuffer = String(transfer.amount || '');
+  setAmountCalculatorValue(transfer.amount);
 
   setRecordType('transfer');
   updateAmountPreview();
