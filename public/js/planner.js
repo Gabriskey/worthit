@@ -212,8 +212,11 @@ function render(){
   let grandTotal=0
 
  const currentMonthIndex = new Date().getMonth()
+ const visibleMonths = months.filter((month, index) => {
+  return index >= currentMonthIndex || (Array.isArray(d[month]) && d[month].length > 0)
+ })
 
-months.slice(currentMonthIndex).forEach(m=>{
+visibleMonths.forEach(m=>{
   const entries = d[m] || []
 
   let low=0,med=0,high=0,total=0
