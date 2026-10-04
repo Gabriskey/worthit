@@ -1221,6 +1221,10 @@ function renderDashboardAccounts(){
   const wrap = document.getElementById('dashboardAccountsGrid');
   if (!wrap) return;
 
+  const totalBalance = accounts.reduce((sum, account) => sum + accountBalance(account.id), 0);
+  const totalBalanceElement = document.getElementById('dashboardTotalBalance');
+  if (totalBalanceElement) totalBalanceElement.textContent = money(totalBalance);
+
 if (!accounts.length) {
   wrap.innerHTML = `
     <button class="add-account-card" type="button" onclick="openAccountModal()">
@@ -1250,7 +1254,7 @@ if (!accounts.length) {
             <span class="account-dot" style="background:${account.color}"></span>
             ${escapeHtml(account.name)}
           </div>
-          <div class="dashboard-account-type">${escapeHtml(account.type)}</div>
+          <div class="dashboard-account-type">${escapeHtml(formatAccountType(account.type))}</div>
         </div>
         <button class="btn account-toggle-btn${eyeUsesLightIcon ? ' light-icon' : ''}" type="button" title="${escapeHtml(toggleLabel)}" aria-label="${escapeHtml(toggleLabel)}" onclick="event.stopPropagation(); toggleAccountForReports('${account.id}')">
           <img src="../earnit/assets/${isEnabled ? 'eye_open.png' : 'eye_closed.png'}" alt="" class="account-eye-icon">
@@ -2111,35 +2115,69 @@ function updateCategoryPickerButton(){
   categoryPickerText.textContent = subcategory || category;
 }
 
+function getCategoryDropdown(){
+  const dropdown = document.getElementById('categoryPickerDropdown');
+  if (dropdown && dropdown.parentElement !== document.body) document.body.append(dropdown);
+  return dropdown;
+}
+
 function positionCategoryDropdown(){
   const btn = document.querySelector('.category-picker-btn');
-  const dropdown = document.getElementById('categoryPickerDropdown');
-  if (!btn || !dropdown) return;
+  const dropdown = getCategoryDropdown();
+  if (!btn || !dropdown || !dropdown.classList.contains('open')) return;
 
   const rect = btn.getBoundingClientRect();
   const gap = 8;
   const sidePadding = 16;
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+  const shellBottom = document.getElementById('worthitShell')?.getBoundingClientRect().bottom || 0;
+  const topBoundary = Math.max(shellBottom + sidePadding, sidePadding);
+  const bottomBoundary = viewportHeight - sidePadding;
+  const availableBelow = bottomBoundary - rect.bottom - gap;
+  const availableAbove = rect.top - topBoundary - gap;
 
-  dropdown.style.left = rect.left + 'px';
-  dropdown.style.width = rect.width + 'px';
-  dropdown.style.top = (rect.bottom + gap) + 'px';
+  dropdown.style.maxHeight = 'none';
+  const preferredHeight = Math.min(dropdown.scrollHeight, 420);
+  const openAbove = availableBelow < preferredHeight && availableAbove > availableBelow;
+  const availableHeight = Math.max(0, openAbove ? availableAbove : availableBelow);
+  const maxHeight = Math.min(420, availableHeight);
+  const visibleHeight = Math.min(dropdown.scrollHeight, maxHeight);
+  const width = Math.min(rect.width, viewportWidth - sidePadding * 2);
+  const left = Math.min(Math.max(sidePadding, rect.left), viewportWidth - sidePadding - width);
 
-  const availableBelow = window.innerHeight - rect.bottom - gap - sidePadding;
-  dropdown.style.maxHeight = Math.max(260, availableBelow) + 'px';
+  dropdown.style.left = `${left}px`;
+  dropdown.style.width = `${width}px`;
+  dropdown.style.maxHeight = `${maxHeight}px`;
+  dropdown.style.top = openAbove
+    ? `${rect.top - gap - visibleHeight}px`
+    : `${rect.bottom + gap}px`;
+  dropdown.classList.toggle('open-above', openAbove);
 }
 
 function openCategoryPicker(){
+  const dropdown = getCategoryDropdown();
+  if (!dropdown) return;
+
+  const willOpen = !dropdown.classList.contains('open');
   renderCategoryPickerAll();
-  categoryPickerDropdown.classList.toggle('open');
-  positionCategoryDropdown();
+  dropdown.classList.toggle('open', willOpen);
+
+  if (willOpen) {
+    dropdown.scrollTop = 0;
+    positionCategoryDropdown();
+  }
 }
 
 function closeCategoryPicker(){
-  categoryPickerDropdown.classList.remove('open');
+  document.getElementById('categoryPickerDropdown')?.classList.remove('open', 'open-above');
 }
 
 function renderCategoryPickerAll(){
-  categoryPickerDropdown.innerHTML = `
+  const dropdown = getCategoryDropdown();
+  if (!dropdown) return;
+
+  dropdown.innerHTML = `
     <div class="picker-section-title">All Categories</div>
     ${categories.map(cat => `
       <button class="picker-row" type="button" onclick="renderCategoryPickerSubs('${cat.name}')">
@@ -2153,7 +2191,10 @@ function renderCategoryPickerSubs(categoryName){
   const cat = categories.find(c => c.name === categoryName);
   if (!cat) return;
 
-  categoryPickerDropdown.innerHTML = `
+  const dropdown = getCategoryDropdown();
+  if (!dropdown) return;
+
+  dropdown.innerHTML = `
     <div class="picker-section-title picker-title-row">
       <button class="picker-back-btn" type="button" onclick="renderCategoryPickerAll()">←</button>
       <span>General</span>
@@ -2173,7 +2214,7 @@ function renderCategoryPickerSubs(categoryName){
     `).join('')}
   `;
   positionCategoryDropdown();
-categoryPickerDropdown.scrollTop = 0;
+  dropdown.scrollTop = 0;
 }
 
 function chooseCategory(category, subcategory = ''){
@@ -2184,6 +2225,11 @@ function chooseCategory(category, subcategory = ''){
 
 function accountColor(account){
   return account?.color || '#24e384';
+}
+
+function formatAccountType(type){
+  const value = String(type || '');
+  return value.trim().toLowerCase() === 'savings account' ? 'Savings' : value;
 }
 
 function accountOptionTextColor(color){
@@ -2220,13 +2266,18 @@ function renderAccountPicker(pickerId, selectId, options = {}){
     select.value = selected.id;
   }
 
+  const selectedColor = selected ? accountColor(selected) : '';
+  const selectedTextColor = selected ? accountOptionTextColor(selectedColor) : '';
+  const selectedStyle = selected
+    ? ` style="background:${selectedColor};color:${selectedTextColor}"`
+    : '';
   const selectedMarkup = selected
-    ? `<span class="account-picker-swatch" style="background:${accountColor(selected)}"></span>
-      <span>${escapeHtml(selected.name)} · ${escapeHtml(selected.type)}</span>`
+    ? `
+      <span>${escapeHtml(selected.name)} · ${escapeHtml(formatAccountType(selected.type))}</span>`
     : `<span class="account-picker-placeholder">${escapeHtml(options.placeholder || 'Select account')}</span>`;
 
   picker.innerHTML = `
-    <button class="account-picker-trigger" type="button" aria-expanded="false"${availableAccounts.length ? '' : ' disabled'}>
+    <button class="account-picker-trigger${selected ? ' selected' : ''}" type="button" aria-expanded="false"${selectedStyle}${availableAccounts.length ? '' : ' disabled'}>
       ${selectedMarkup}
       <span class="account-picker-chevron" aria-hidden="true">⌄</span>
     </button>
@@ -2238,7 +2289,7 @@ function renderAccountPicker(pickerId, selectId, options = {}){
 
         return `<button class="account-picker-option${selectedClass}" type="button" role="option" aria-selected="${account.id === selected?.id}" data-account-id="${escapeHtml(account.id)}" style="background:${color};color:${textColor}">
           <span>${escapeHtml(account.name)}</span>
-          <small>${escapeHtml(account.type)}</small>
+          <small>${escapeHtml(formatAccountType(account.type))}</small>
         </button>`;
       }).join('') : `<div class="account-picker-empty">${escapeHtml(options.emptyMessage || 'No accounts available.')}</div>`}
     </div>
@@ -2297,7 +2348,7 @@ function renderTransferAccountPickers(){
 
 function populateAccountSelects(){
   const accountOptions = accounts
-    .map(a => `<option value="${a.id}">${escapeHtml(a.name)} · ${escapeHtml(a.type)}</option>`)
+    .map(a => `<option value="${a.id}">${escapeHtml(a.name)} · ${escapeHtml(formatAccountType(a.type))}</option>`)
     .join('');
 
   ['recordAccount','recordFromAccount'].forEach(id => {
@@ -2565,13 +2616,43 @@ function openRecordModal(){
   recordDescription.value = '';
   if (document.getElementById('recordNotes')) recordNotes.value = '';
   if (document.getElementById('recordTransferFee')) recordTransferFee.value = '';
+  updateRecordModalViewport();
+  updateRecordModalPresentation();
   document.getElementById('recordModalBackdrop').classList.add('open');
 }
 
 function closeRecordModal(){
   editingRecordId = null;
+  closeCategoryPicker();
   document.getElementById('recordModalBackdrop').classList.remove('open');
 }
+
+function updateRecordModalPresentation(){
+  const isEditing = Boolean(editingRecordId);
+  document.getElementById('recordModalTitle').textContent = isEditing ? 'EDIT ENTRY' : 'ADD ENTRY';
+  document.getElementById('recordSubmitButton').textContent = isEditing
+    ? 'Save Changes'
+    : recordType === 'transfer'
+      ? 'Save Transfer'
+      : 'Save Entry';
+  document.getElementById('recordModalDeleteButton').hidden = !isEditing;
+}
+
+function updateRecordModalViewport(){
+  const shellHeight = document.getElementById('worthitShell')?.getBoundingClientRect().height || 0;
+  document.getElementById('recordModalBackdrop')
+    ?.style.setProperty('--record-modal-shell-height', `${Math.ceil(shellHeight)}px`);
+}
+
+window.addEventListener('resize', () => {
+  if (document.getElementById('recordModalBackdrop')?.classList.contains('open')) {
+    updateRecordModalViewport();
+  }
+
+  positionCategoryDropdown();
+});
+
+document.querySelector('.record-modal-body')?.addEventListener('scroll', positionCategoryDropdown);
 
 function setRecordType(type){
   recordType = type;
@@ -2581,6 +2662,7 @@ function setRecordType(type){
   document.getElementById('transferTypeBtn').classList.toggle('active', type === 'transfer');
 
   document.getElementById('recordForm').classList.toggle('transfer-mode', type === 'transfer');
+  if (type === 'transfer') closeCategoryPicker();
 if (type === 'income') {
   recordCategory.value = 'Income|';
 updateCategoryPickerButton();
@@ -2595,6 +2677,7 @@ updateCategoryPickerButton();
     renderTransferAccountPickers();
   }
 
+  updateRecordModalPresentation();
   updateAmountPreview();
 }
 
@@ -2625,8 +2708,8 @@ function calculatePendingOperation(left, operator, right){
 }
 
 function calculatorOperatorSymbol(operator){
-  if (operator === '*') return '×';
-  if (operator === '/') return '÷';
+  if (operator === '*') return 'x';
+  if (operator === '/') return '/';
   return operator;
 }
 
@@ -2904,10 +2987,12 @@ function editRecord(id){
 
   syncSelectedCategory();
 
+  updateRecordModalViewport();
+  updateRecordModalPresentation();
   document.getElementById('recordModalBackdrop').classList.add('open');
 }
 
-function deleteRecord(id){
+function deleteRecord(id, afterDelete){
   const record = records.find(r => r.id === id);
   if (!record) return;
 
@@ -2931,8 +3016,14 @@ function deleteRecord(id){
       records = records.filter(r => r.id !== id && r.id !== linkedFee?.id);
       saveRecords();
       render();
+      afterDelete?.();
     }
   );
+}
+
+function deleteEditingRecord(){
+  if (!editingRecordId) return;
+  deleteRecord(editingRecordId, closeRecordModal);
 }
 
 function editTransfer(id){
@@ -2954,6 +3045,8 @@ function editTransfer(id){
   document.getElementById('recordDate').value = transfer.date || nowDate();
   document.getElementById('recordTime').value = transfer.time || nowTime();
 
+  updateRecordModalViewport();
+  updateRecordModalPresentation();
   document.getElementById('recordModalBackdrop').classList.add('open');
 }
 

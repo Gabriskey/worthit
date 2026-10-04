@@ -58,8 +58,12 @@
 
         <main class="dashboard-content">
           <section class="card accounts-overview-card">
-            <div class="toolbar">
+            <div class="toolbar accounts-overview-toolbar">
               <h2>ACCOUNTS</h2>
+              <div class="accounts-total-balance">
+                <span>TOTAL BALANCE</span>
+                <strong id="dashboardTotalBalance">₱0</strong>
+              </div>
             </div>
             <div id="dashboardAccountsGrid" class="dashboard-accounts-grid"></div>
           </section>
@@ -258,7 +262,7 @@ id="quickOverlay" onclick="toggleQuick(false)"></div>
   <div class="modal">
 <div class="modal-header"><h3 id="accountModalTitle">Create account</h3><button class="btn" onclick="closeAccountModal()">Close</button></div>    <form class="form" id="accountForm">
       <div><label>Account name</label><input id="accountName" placeholder="Ex. BDO Savings" required></div>
-      <div><label>Account type</label><select id="accountType"><option>general</option><option>cash</option><option>credit card</option><option>savings account</option></select></div>
+      <div><label>Account type</label><select id="accountType"><option>general</option><option>cash</option><option>credit card</option><option value="savings account">Savings</option></select></div>
       <div id="accountPresetField" class="account-preset-field" hidden>
         <label>Choose bank / provider</label>
         <div id="accountPresetOptions" class="account-preset-options"></div>
@@ -278,102 +282,116 @@ id="quickOverlay" onclick="toggleQuick(false)"></div>
   <div class="modal">
     <form id="recordForm">
       <div class="record-topbar">
-        <button type="button" onclick="closeRecordModal()">×</button>
-        <h3>Add Entry</h3>
-        <button type="submit">✓</button>
+        <h3 id="recordModalTitle">ADD ENTRY</h3>
+        <button class="record-modal-close" type="button" onclick="closeRecordModal()" aria-label="Close entry modal">×</button>
       </div>
 
-      <div class="record-modal-grid">
-        <div class="record-left">
-          <div class="type-toggle">
-            <button id="incomeTypeBtn" class="active" type="button" onclick="setRecordType('income')">INCOME</button>
-            <button id="expenseTypeBtn" type="button" onclick="setRecordType('expense')">EXPENSE</button>
-            <button id="transferTypeBtn" type="button" onclick="setRecordType('transfer')">TRANSFER</button>
-          </div>
+      <div class="record-type-area">
+        <div class="type-toggle" aria-label="Entry type">
+          <button id="expenseTypeBtn" class="active" type="button" onclick="setRecordType('expense')">Expense</button>
+          <button id="incomeTypeBtn" type="button" onclick="setRecordType('income')">Income</button>
+          <button id="transferTypeBtn" type="button" onclick="setRecordType('transfer')">Transfer</button>
+        </div>
+      </div>
 
-          <div class="amount-preview">
-            <span id="calculatorStatus" class="calculator-status"></span>
-            <div class="amount-preview-main">
-              <span id="amountPreview">0</span><span class="amount-currency">PHP</span>
+      <div class="record-modal-body">
+        <div class="record-modal-grid">
+          <div class="record-left">
+            <div class="amount-preview">
+              <span id="calculatorStatus" class="calculator-status"></span>
+              <div class="amount-preview-main">
+                <span id="amountPreview">0</span><span class="amount-currency">PHP</span>
+              </div>
+            </div>
+
+            <input id="recordAmount" type="hidden" value="0">
+
+            <div class="numpad-wrap">
+              <div class="numpad" id="numpad"></div>
+              <div class="operator-pad">
+                <button class="calculator-all-clear" type="button" onclick="clearNum()">AC</button>
+                <button type="button" onclick="pressNum('/')">/</button>
+                <button type="button" onclick="pressNum('*')">x</button>
+                <button type="button" onclick="pressNum('-')">-</button>
+                <button type="button" onclick="pressNum('+')">+</button>
+                <button type="button" onclick="calculateAmount()">=</button>
+              </div>
             </div>
           </div>
 
-          <input id="recordAmount" type="hidden" value="0">
+          <div class="record-right">
+            <div class="record-primary-details">
+              <div class="record-info-row normal-record-row">
+                <div>
+                  <label>Account</label>
+                  <select id="recordAccount" class="account-select-native" aria-hidden="true" tabindex="-1"></select>
+                  <div id="recordAccountPicker" class="account-picker"></div>
+                </div>
+              </div>
 
-          <div class="numpad-wrap">
-            <div class="numpad" id="numpad"></div>
-            <div class="operator-pad">
-              <button type="button" onclick="pressNum('/')">÷</button>
-              <button type="button" onclick="pressNum('*')">*</button>
-              <button type="button" onclick="pressNum('-')">-</button>
-              <button type="button" onclick="pressNum('+')">+</button>
-              <button type="button" onclick="calculateAmount()">=</button>
+            </div>
+
+            <div class="transfer-record-row">
+              <div>
+                <label>From Account</label>
+                <select id="recordFromAccount" class="account-select-native" aria-hidden="true" tabindex="-1"></select>
+                <div id="recordFromAccountPicker" class="account-picker"></div>
+              </div>
+
+              <div>
+                <label>To Account</label>
+                <select id="recordToAccount" class="account-select-native" aria-hidden="true" tabindex="-1"></select>
+                <div id="recordToAccountPicker" class="account-picker"></div>
+              </div>
+            </div>
+
+            <div class="transfer-record-row transfer-fee-row">
+              <div>
+                <label>Transfer Fee / Charge</label>
+                <input id="recordTransferFee" type="text" inputmode="decimal" placeholder="0.00 (optional)">
+              </div>
+            </div>
+
+            <div class="normal-record-row record-classification-fields">
+              <label>Category</label>
+              <input id="recordCategory" type="hidden" value="Food & Drinks|">
+              <button class="category-picker-btn" type="button" onclick="openCategoryPicker()">
+                <span id="categoryPickerIcon" class="category-picker-icon">🍴</span>
+                <span id="categoryPickerText">Food & Drinks</span>
+              </button>
+
+              <div class="category-picker-dropdown" id="categoryPickerDropdown"></div>
+            </div>
+
+            <div class="record-description-row">
+              <label>Description</label>
+              <input id="recordDescription" placeholder="Ex. Salary, food, gas">
+            </div>
+
+            <div class="row record-when-fields">
+              <div>
+                <label>Date</label>
+                <input id="recordDate" type="date">
+              </div>
+              <div>
+                <label>Time</label>
+                <input id="recordTime" type="time">
+              </div>
+            </div>
+
+            <div class="record-notes-row">
+              <label>Notes</label>
+              <textarea id="recordNotes" rows="3" placeholder="Add a note (optional)"></textarea>
             </div>
           </div>
         </div>
+      </div>
 
-        <div class="record-right">
-          <div>
-            <label>Item name</label>
-            <input id="recordDescription" placeholder="Ex. Salary, food, gas">
-          </div>
-
-          <div class="record-info-row normal-record-row">
-            <div>
-              <label>Account</label>
-              <select id="recordAccount" class="account-select-native" aria-hidden="true" tabindex="-1"></select>
-              <div id="recordAccountPicker" class="account-picker"></div>
-            </div>
-          </div>
-
-          <div class="transfer-record-row">
-            <div>
-              <label>From Account</label>
-              <select id="recordFromAccount" class="account-select-native" aria-hidden="true" tabindex="-1"></select>
-              <div id="recordFromAccountPicker" class="account-picker"></div>
-            </div>
-
-            <div>
-              <label>To Account</label>
-              <select id="recordToAccount" class="account-select-native" aria-hidden="true" tabindex="-1"></select>
-              <div id="recordToAccountPicker" class="account-picker"></div>
-            </div>
-          </div>
-
-          <div class="transfer-record-row transfer-fee-row">
-            <div>
-              <label>Transfer Fee / Charge (Optional)</label>
-              <input id="recordTransferFee" type="text" inputmode="decimal" placeholder="0.00">
-            </div>
-          </div>
-
-          <div class="normal-record-row">
-            <label>Category</label>
-<input id="recordCategory" type="hidden" value="Food & Drinks|">
-<button class="category-picker-btn" type="button" onclick="openCategoryPicker()">
-  <span id="categoryPickerIcon" class="category-picker-icon">🍴</span>
-  <span id="categoryPickerText">Food & Drinks</span>
-</button>
-
-<div class="category-picker-dropdown" id="categoryPickerDropdown"></div>
-          </div>
-
-          <div class="row">
-            <div>
-              <label>Date</label>
-              <input id="recordDate" type="date">
-            </div>
-            <div>
-              <label>Time</label>
-              <input id="recordTime" type="time">
-            </div>
-          </div>
-
-          <div>
-            <label>Notes</label>
-            <textarea id="recordNotes" rows="5" placeholder="Optional notes"></textarea>
-          </div>
-
+      <div class="record-modal-actions">
+        <button class="btn ghost-danger" id="recordModalDeleteButton" type="button" onclick="deleteEditingRecord()" hidden>Delete Entry</button>
+        <div class="record-modal-save-actions">
+          <button class="btn" type="button" onclick="closeRecordModal()">Cancel</button>
+          <button class="btn primary" id="recordSubmitButton" type="submit">Save Entry</button>
         </div>
       </div>
     </form>
